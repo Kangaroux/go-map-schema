@@ -1,4 +1,4 @@
-package compare
+package schema
 
 import (
 	"errors"

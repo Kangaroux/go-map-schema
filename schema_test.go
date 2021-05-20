@@ -1,14 +1,14 @@
-package compare_test
+package schema_test
 
 import (
 	"encoding/json"
 	"testing"
 
-	compare "github.com/Kangaroux/go-map-schema"
+	schema "github.com/Kangaroux/go-map-schema"
 	"github.com/stretchr/testify/require"
 )
 
-type mismatch compare.FieldMismatch
+type mismatch schema.FieldMismatch
 
 type TestStruct struct {
 	Foo string
@@ -47,19 +47,19 @@ func TestCompareMapToStruct_BadDstErrors(t *testing.T) {
 	var err error
 	m := make(map[string]interface{})
 
-	_, err = compare.CompareMapToStruct(123, m)
+	_, err = schema.CompareMapToStruct(123, m)
 	require.Error(t, err)
 
-	_, err = compare.CompareMapToStruct("hello", m)
+	_, err = schema.CompareMapToStruct("hello", m)
 	require.Error(t, err)
 
-	_, err = compare.CompareMapToStruct(nil, m)
+	_, err = schema.CompareMapToStruct(nil, m)
 	require.Error(t, err)
 
-	_, err = compare.CompareMapToStruct(TestStruct{}, m)
+	_, err = schema.CompareMapToStruct(TestStruct{}, m)
 	require.Error(t, err)
 
-	_, err = compare.CompareMapToStruct(&TestStruct{}, m)
+	_, err = schema.CompareMapToStruct(&TestStruct{}, m)
 	require.NoError(t, err)
 }
 
@@ -67,10 +67,10 @@ func TestCompareMapToStruct_BadDstErrors(t *testing.T) {
 func TestCompareMapToStruct_BadSrcErrors(t *testing.T) {
 	var err error
 
-	_, err = compare.CompareMapToStruct(&TestStruct{}, nil)
+	_, err = schema.CompareMapToStruct(&TestStruct{}, nil)
 	require.Error(t, err)
 
-	_, err = compare.CompareMapToStruct(&TestStruct{}, make(map[string]interface{}))
+	_, err = schema.CompareMapToStruct(&TestStruct{}, make(map[string]interface{}))
 	require.NoError(t, err)
 }
 
@@ -144,7 +144,7 @@ func TestCompareMapToStruct_MismatchedFieldsSimple(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStruct{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -216,7 +216,7 @@ func TestCompareMapToStruct_MismatchedFieldsEmbedded(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStructEmbedded{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -256,7 +256,7 @@ func TestCompareMapToStruct_MismatchedFieldsPtr(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStructPtr{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructPtr{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -312,7 +312,7 @@ func TestCompareMapToStruct_MismatchedFieldsTags(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStructTags{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -347,7 +347,7 @@ func TestCompareMapToStruct_MissingFields(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStruct{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
@@ -386,7 +386,7 @@ func TestCompareMapToStruct_MissingFieldsEmbedded(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStructEmbedded{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
@@ -421,7 +421,7 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := compare.CompareMapToStruct(&TestStructTags{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
