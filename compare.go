@@ -16,17 +16,6 @@ type FieldMismatch struct {
 type CompareResults struct {
 	MismatchedFields []FieldMismatch
 	MissingFields    []string
-
-	dst interface{}
-	src map[string]interface{}
-}
-
-func (r *CompareResults) Dst() reflect.Type {
-	return reflect.ValueOf(r.dst).Elem().Type()
-}
-
-func (r *CompareResults) String() string {
-	return fmt.Sprintf("CompareResults<missing=%v, dst=%s, src=%v>", r.MissingFields, r.Dst().Name(), r.src)
 }
 
 func parseField(f reflect.StructField) (name string, ignore bool) {
@@ -101,8 +90,6 @@ func Compare(dst interface{}, src map[string]interface{}) (*CompareResults, erro
 	}
 
 	results := &CompareResults{
-		dst:              dst,
-		src:              src,
 		MismatchedFields: []FieldMismatch{},
 		MissingFields:    []string{},
 	}
