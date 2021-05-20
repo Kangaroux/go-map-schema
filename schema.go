@@ -44,16 +44,16 @@ A type mismatch occurs if a value cannot be converted to a different type withou
 modifying it, parsing it, etc.
 
 Examples of a type mismatch (src -> dst):
-	string 	-> int
-	int 	-> string
-	bool 	-> int
-	float 	-> int
-	null	-> string
+    string -> int
+    int    -> string
+    bool   -> int
+    float  -> int
+    null   -> string
 
 Examples of allowed type conversions (src -> dst):
-	int		-> float
-	<T>		-> *<T>
-	null	-> *<T>
+    int  -> float
+    <T>  -> *<T>
+    null -> *<T>
 
 Embedded structs work as you might expect. The fields of the struct are treated as
 if they were hardcoded into dst. In other words, embedding does not change how
