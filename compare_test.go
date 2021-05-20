@@ -42,6 +42,38 @@ func toJson(val interface{}) string {
 	return string(out)
 }
 
+// Tests that Compare returns an error if the dst isn't valid.
+func TestCompare_BadDstErrors(t *testing.T) {
+	var err error
+	m := make(map[string]interface{})
+
+	_, err = compare.Compare(123, m)
+	require.Error(t, err)
+
+	_, err = compare.Compare("hello", m)
+	require.Error(t, err)
+
+	_, err = compare.Compare(nil, m)
+	require.Error(t, err)
+
+	_, err = compare.Compare(TestStruct{}, m)
+	require.Error(t, err)
+
+	_, err = compare.Compare(&TestStruct{}, m)
+	require.NoError(t, err)
+}
+
+// Tests that Compare returns an error if the src isn't valid.
+func TestCompare_BadSrcErrors(t *testing.T) {
+	var err error
+
+	_, err = compare.Compare(&TestStruct{}, nil)
+	require.Error(t, err)
+
+	_, err = compare.Compare(&TestStruct{}, make(map[string]interface{}))
+	require.NoError(t, err)
+}
+
 // Tests that Compare identifies fields in src that can't be converted
 // to the field in dst, due to a type mismatch (e.g. src:string -> dst:int).
 // This only tests "simple" types (no pointers, lists, structs, etc.)
@@ -100,7 +132,7 @@ func TestCompare_MismatchedFieldsSimple(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStruct{}, src)
+		r, _ := compare.Compare(&TestStruct{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -172,7 +204,7 @@ func TestCompare_MismatchedFieldsEmbedded(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStructEmbedded{}, src)
+		r, _ := compare.Compare(&TestStructEmbedded{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -212,7 +244,7 @@ func TestCompare_MismatchedFieldsPtr(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStructPtr{}, src)
+		r, _ := compare.Compare(&TestStructPtr{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -268,7 +300,7 @@ func TestCompare_MismatchedFieldsTags(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStructTags{}, src)
+		r, _ := compare.Compare(&TestStructTags{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -303,7 +335,7 @@ func TestCompare_MissingFields(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStruct{}, src)
+		r, _ := compare.Compare(&TestStruct{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
@@ -342,7 +374,7 @@ func TestCompare_MissingFieldsEmbedded(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStructEmbedded{}, src)
+		r, _ := compare.Compare(&TestStructEmbedded{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
@@ -377,7 +409,7 @@ func TestCompare_MissingFieldsTags(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&TestStructTags{}, src)
+		r, _ := compare.Compare(&TestStructTags{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }

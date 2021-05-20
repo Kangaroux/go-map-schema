@@ -1,6 +1,7 @@
 package compare
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -86,7 +87,19 @@ func CanConvert(t reflect.Type, v reflect.Value) bool {
 	return v.Type().ConvertibleTo(t)
 }
 
-func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
+func Compare(dst interface{}, src map[string]interface{}) (*CompareResults, error) {
+	v := reflect.ValueOf(dst)
+
+	if !v.IsValid() || v.Kind() != reflect.Ptr {
+		return nil, errors.New("dst must be a pointer to a struct")
+	} else if v.IsNil() {
+		return nil, errors.New("dst must not be nil")
+	} else if v.Elem().Kind() != reflect.Struct {
+		return nil, errors.New("dst must be a pointer to a struct")
+	} else if src == nil {
+		return nil, errors.New("src must not be nil")
+	}
+
 	results := &CompareResults{
 		dst:              dst,
 		src:              src,
@@ -94,9 +107,9 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 		MissingFields:    []string{},
 	}
 
-	compare(reflect.ValueOf(dst).Elem().Type(), src, results)
+	compare(v.Elem().Type(), src, results)
 
-	return results
+	return results, nil
 }
 
 func compare(t reflect.Type, src map[string]interface{}, results *CompareResults) {
