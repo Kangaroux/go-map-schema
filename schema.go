@@ -96,10 +96,14 @@ func canConvert(t reflect.Type, v reflect.Value) bool {
 
 	// If the dst is a pointer, check if we can convert to the type it's pointing to.
 	if isPtr {
-		return t.Elem().ConvertibleTo(v.Type())
+		if !t.Elem().ConvertibleTo(v.Type()) {
+			return false
+		}
+	} else if !v.Type().ConvertibleTo(t) {
+		return false
 	}
 
-	return v.Type().ConvertibleTo(t)
+	return true
 }
 
 // compare performs the actual check between the map fields and the struct fields.
