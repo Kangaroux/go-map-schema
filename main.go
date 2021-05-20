@@ -11,17 +11,25 @@ type MyStruct struct {
 }
 
 type CompareResults struct {
+	dst           interface{}
+	src           map[string]interface{}
 	MissingFields []string
 }
 
+func (r *CompareResults) Dst() reflect.Type {
+	return reflect.ValueOf(r.dst).Elem().Type()
+}
+
 func (r *CompareResults) String() string {
-	return fmt.Sprintf("CompareResults<Missing=%v>", r.MissingFields)
+	return fmt.Sprintf("CompareResults<missing=%v, dst=%s, src=%v>", r.MissingFields, r.Dst().Name(), r.src)
 }
 
 func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 	v := reflect.ValueOf(dst)
 	t := v.Elem().Type()
 	results := &CompareResults{
+		dst:           dst,
+		src:           src,
 		MissingFields: []string{},
 	}
 
