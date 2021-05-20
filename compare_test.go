@@ -110,6 +110,18 @@ func TestCompareMapToStruct_MismatchedFieldsSimple(t *testing.T) {
 				},
 			},
 		},
+		// TODO: When converting to an int, check to see if the src value would be truncated.
+		// If the value is modified as part of the conversion that should be a type mismatch.
+		// {
+		// 	srcJson: `{"Bar":1.23}`,
+		// 	expected: []mismatch{
+		// 		{
+		// 			Field:    "Bar",
+		// 			Expected: "int",
+		// 			Actual:   "float64",
+		// 		},
+		// 	},
+		// },
 		{
 			srcJson: `{"Foo":true,"Baz":""}`,
 			expected: []mismatch{

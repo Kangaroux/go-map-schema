@@ -7,17 +7,54 @@ import (
 	"strings"
 )
 
+// FieldMismatch represents a type mismatch between a struct field and a map field.
 type FieldMismatch struct {
-	Field    string
+	// Field is the JSON name of the field.
+	Field string
+
+	// Expected is the expected type (the type of the dst field).
 	Expected string
-	Actual   string
+
+	// Actual is the actual type (type of the src field).
+	Actual string
 }
 
+// CompareResults contains the results of CompareMapToStruct.
 type CompareResults struct {
+	// MismatchedFields is a list of fields which have a type mismatch.
 	MismatchedFields []FieldMismatch
-	MissingFields    []string
+
+	// MissingFields is a list of JSON field names which were not in src.
+	MissingFields []string
 }
 
+/*
+CompareMapToStruct takes a pointer to a struct (dst) and a map (src). For each field
+in dst, it checks if: the field is in src, and if the types are compatible. The name
+of the field is the same as the JSON name.
+
+Fields that have a type mismatch are added to MismatchedFields in the returned
+CompareResults. Any fields in dst that are not in src are added to MissingFields.
+
+A type mismatch occurs if a value cannot be converted to a different type without
+modifying it, parsing it, etc.
+
+Examples of a type mismatch (src -> dst):
+	string 	-> int
+	int 	-> string
+	bool 	-> int
+	float 	-> int
+	null	-> string
+
+Examples of allowed type conversions (src -> dst):
+	int		-> float
+	<T>		-> *<T>
+	null	-> *<T>
+
+Embedded structs work as you might expect. The fields of the struct are treated as
+if they were hardcoded into dst. In other words, embedding does not change how
+src should be structured.
+*/
 func CompareMapToStruct(dst interface{}, src map[string]interface{}) (*CompareResults, error) {
 	v := reflect.ValueOf(dst)
 
