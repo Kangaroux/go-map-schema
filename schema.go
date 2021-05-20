@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 )
@@ -88,6 +89,7 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}) (*CompareRe
 // t points to.
 func canConvert(t reflect.Type, v reflect.Value) bool {
 	isPtr := t.Kind() == reflect.Ptr
+	dstType := t
 
 	// Check if v is a nil value.
 	if !v.IsValid() || (v.CanAddr() && v.IsNil()) {
@@ -96,10 +98,31 @@ func canConvert(t reflect.Type, v reflect.Value) bool {
 
 	// If the dst is a pointer, check if we can convert to the type it's pointing to.
 	if isPtr {
-		return t.Elem().ConvertibleTo(v.Type())
+		dstType = t.Elem()
 	}
 
-	return v.Type().ConvertibleTo(t)
+	if !v.Type().ConvertibleTo(dstType) {
+		return false
+	}
+
+	// Handle converting to an integer type.
+	if dstInt, unsigned := isIntegerType(dstType); dstInt {
+		if isFloatType(v.Type()) {
+			f := v.Float()
+
+			if math.Trunc(f) != f {
+				return false
+			} else if unsigned && f < 0 {
+				return false
+			}
+		} else if srcInt, _ := isIntegerType(v.Type()); srcInt {
+			if unsigned && v.Int() < 0 {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // compare performs the actual check between the map fields and the struct fields.
@@ -134,6 +157,30 @@ func compare(t reflect.Type, src map[string]interface{}, results *CompareResults
 			results.MissingFields = append(results.MissingFields, fieldName)
 		}
 	}
+}
+
+// isFloatType returns true if the type is a floating point. Note that this doesn't
+// care about the value -- unmarshaling the number "0" gives a float, not an int.
+func isFloatType(t reflect.Type) (yes bool) {
+	switch t.Kind() {
+	case reflect.Float32, reflect.Float64:
+		yes = true
+	}
+
+	return
+}
+
+// isIntegerType returns whether the type is an integer and if it's unsigned.
+func isIntegerType(t reflect.Type) (yes bool, unsigned bool) {
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		yes = true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		yes = true
+		unsigned = true
+	}
+
+	return
 }
 
 // parseField returns the field's JSON name.
