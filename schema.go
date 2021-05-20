@@ -8,10 +8,13 @@ import (
 	"strings"
 )
 
-type ConvertibleFunc func(t reflect.Type, v reflect.Value) bool
+// CompareResults contains the results of CompareMapToStruct.
+type CompareResults struct {
+	// MismatchedFields is a list of fields which have a type mismatch.
+	MismatchedFields []FieldMismatch
 
-type CompareOpts struct {
-	ConvertibleFunc ConvertibleFunc
+	// MissingFields is a list of JSON field names which were not in src.
+	MissingFields []string
 }
 
 // FieldMismatch represents a type mismatch between a struct field and a map field.
@@ -30,14 +33,22 @@ func (f FieldMismatch) String() string {
 	return fmt.Sprintf(`expected "%s" to be a %s but it's a %s`, f.Field, f.Expected, f.Actual)
 }
 
-// CompareResults contains the results of CompareMapToStruct.
-type CompareResults struct {
-	// MismatchedFields is a list of fields which have a type mismatch.
-	MismatchedFields []FieldMismatch
+// CompareOpts can be used to configure how CompareMapToStruct works.
+type CompareOpts struct {
+	// ConvertibleFunc is the function used to check if a value can be safely converted
+	// to a type.
+	ConvertibleFunc ConvertibleFunc
 
-	// MissingFields is a list of JSON field names which were not in src.
-	MissingFields []string
+	// TypeNameFunc is the function used to convert a type into a string.
+	TypeNameFunc TypeNameFunc
 }
+
+// ConvertibleFunc takes a dst type (t) and a src value (v) and returns true if
+// v is convertible to t.
+type ConvertibleFunc func(t reflect.Type, v reflect.Value) bool
+
+// TypeNameFunc takes a reflection type and returns its name as a string.
+type TypeNameFunc func(t reflect.Type) string
 
 /*
 CompareMapToStruct takes a pointer to a struct (dst) and a map (src). For each field
@@ -70,9 +81,15 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 	if opts == nil {
 		opts = &CompareOpts{
 			ConvertibleFunc: DefaultCanConvert,
+			TypeNameFunc:    TypeNameDetailed,
 		}
-	} else if opts.ConvertibleFunc == nil {
-		opts.ConvertibleFunc = DefaultCanConvert
+	} else {
+		if opts.ConvertibleFunc == nil {
+			opts.ConvertibleFunc = DefaultCanConvert
+		}
+		if opts.TypeNameFunc == nil {
+			opts.TypeNameFunc = TypeNameDetailed
+		}
 	}
 
 	v := reflect.ValueOf(dst)
@@ -139,6 +156,43 @@ func DefaultCanConvert(t reflect.Type, v reflect.Value) bool {
 	return true
 }
 
+// TypeNameDetailed takes a type and returns it verbatim.
+func TypeNameDetailed(t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		return fmt.Sprintf("*%s", t.Elem().Name())
+	}
+
+	return t.Name()
+}
+
+// TypeNameSimple takes a type and returns a more universal/generic name.
+// Floats are always "float", unsigned ints are always "uint", ints are always "int".
+func TypeNameSimple(t reflect.Type) string {
+	isPtr := t.Kind() == reflect.Ptr
+	elemType := t
+
+	if isPtr {
+		elemType = t.Elem()
+	}
+
+	out := elemType.Name()
+
+	switch elemType.Kind() {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		out = "uint"
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		out = "int"
+	case reflect.Float32, reflect.Float64:
+		out = "float"
+	}
+
+	if isPtr {
+		out = "*" + out
+	}
+
+	return out
+}
+
 // compare performs the actual check between the map fields and the struct fields.
 func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, results *CompareResults) {
 	for i := 0; i < t.NumField(); i++ {
@@ -159,10 +213,18 @@ func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, resu
 			srcValue := reflect.ValueOf(srcField)
 
 			if !opts.ConvertibleFunc(f.Type, srcValue) {
+				var srcTypeName string
+
+				if !srcValue.IsValid() {
+					srcTypeName = "null"
+				} else {
+					srcTypeName = opts.TypeNameFunc(srcValue.Type())
+				}
+
 				mismatch := FieldMismatch{
 					Field:    fieldName,
-					Expected: typeNameFromType(f.Type),
-					Actual:   typeNameFromValue(srcValue),
+					Expected: opts.TypeNameFunc(f.Type),
+					Actual:   srcTypeName,
 				}
 
 				results.MismatchedFields = append(results.MismatchedFields, mismatch)
@@ -218,23 +280,4 @@ func parseField(f reflect.StructField) (name string, ignore bool) {
 	}
 
 	return tag, false
-}
-
-// typeNameFromType returns the type's name, and handles pointer types.
-func typeNameFromType(t reflect.Type) string {
-	if t.Kind() == reflect.Ptr {
-		return fmt.Sprintf("*%s", t.Elem().Name())
-	}
-
-	return t.Name()
-}
-
-// typeNameFromValue returns the name of the value's type. If the value is invalid
-// (usually from unmarshaling a null) returns "null".
-func typeNameFromValue(v reflect.Value) string {
-	if !v.IsValid() {
-		return "null"
-	}
-
-	return v.Type().Name()
 }
