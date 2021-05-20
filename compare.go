@@ -1,4 +1,4 @@
-package main
+package compare
 
 import (
 	"fmt"
@@ -44,14 +44,4 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 	}
 
 	return results
-}
-
-func main() {
-	o := MyStruct{}
-	m := make(map[string]interface{})
-	m["S"] = "hello"
-	m["N"] = 4
-
-	r := Compare(&o, m)
-	fmt.Println(r)
 }
