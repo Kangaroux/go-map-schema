@@ -88,7 +88,7 @@ func TestCompare_MismatchedFields(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r := compare.Compare(&testStruct{}, src)
-		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected))
+		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
 
@@ -112,6 +112,10 @@ func TestCompare_MismatchedFieldsPtr(t *testing.T) {
 				},
 			},
 		},
+		{
+			srcJson:  `{"Ptr":"hi"}`,
+			expected: []mismatch{},
+		},
 	}
 
 	for _, test := range tests {
@@ -120,7 +124,7 @@ func TestCompare_MismatchedFieldsPtr(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r := compare.Compare(&testStructPtr{}, src)
-		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected))
+		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
 

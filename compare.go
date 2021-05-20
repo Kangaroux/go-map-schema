@@ -44,12 +44,23 @@ func typeNameFromValue(v reflect.Value) string {
 }
 
 // CanConvert returns whether value v is convertible to type t.
+//
+// If t is a pointer and v is not nil, it checks if v is convertible to the type that
+// t points to.
 func CanConvert(t reflect.Type, v reflect.Value) bool {
-	if v.IsValid() {
-		return v.Type().ConvertibleTo(t)
+	isPtr := t.Kind() == reflect.Ptr
+
+	// Check if v is a nil value.
+	if !v.IsValid() || (v.CanAddr() && v.IsNil()) {
+		return isPtr
 	}
 
-	return t.Kind() == reflect.Ptr
+	// If the dst is a pointer, check if we can convert to the type it's pointing to.
+	if isPtr {
+		return t.Elem().ConvertibleTo(v.Type())
+	}
+
+	return v.Type().ConvertibleTo(t)
 }
 
 func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
