@@ -88,6 +88,7 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}) (*CompareRe
 // t points to.
 func canConvert(t reflect.Type, v reflect.Value) bool {
 	isPtr := t.Kind() == reflect.Ptr
+	dstType := t
 
 	// Check if v is a nil value.
 	if !v.IsValid() || (v.CanAddr() && v.IsNil()) {
@@ -96,10 +97,10 @@ func canConvert(t reflect.Type, v reflect.Value) bool {
 
 	// If the dst is a pointer, check if we can convert to the type it's pointing to.
 	if isPtr {
-		if !t.Elem().ConvertibleTo(v.Type()) {
-			return false
-		}
-	} else if !v.Type().ConvertibleTo(t) {
+		dstType = t.Elem()
+	}
+
+	if !v.Type().ConvertibleTo(dstType) {
 		return false
 	}
 

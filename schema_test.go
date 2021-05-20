@@ -110,18 +110,16 @@ func TestCompareMapToStruct_MismatchedFieldsSimple(t *testing.T) {
 				},
 			},
 		},
-		// TODO: When converting to an int, check to see if the src value would be truncated.
-		// If the value is modified as part of the conversion that should be a type mismatch.
-		// {
-		// 	srcJson: `{"Bar":1.23}`,
-		// 	expected: []mismatch{
-		// 		{
-		// 			Field:    "Bar",
-		// 			Expected: "int",
-		// 			Actual:   "float64",
-		// 		},
-		// 	},
-		// },
+		{
+			srcJson: `{"Bar":1.23}`,
+			expected: []mismatch{
+				{
+					Field:    "Bar",
+					Expected: "int",
+					Actual:   "float64",
+				},
+			},
+		},
 		{
 			srcJson: `{"Foo":true,"Baz":""}`,
 			expected: []mismatch{
@@ -145,7 +143,7 @@ func TestCompareMapToStruct_MismatchedFieldsSimple(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStruct{}, src)
-		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
 
@@ -217,7 +215,7 @@ func TestCompareMapToStruct_MismatchedFieldsEmbedded(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src)
-		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
 
@@ -257,7 +255,7 @@ func TestCompareMapToStruct_MismatchedFieldsPtr(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructPtr{}, src)
-		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
 
@@ -313,7 +311,7 @@ func TestCompareMapToStruct_MismatchedFieldsTags(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
-		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
 
@@ -348,7 +346,7 @@ func TestCompareMapToStruct_MissingFields(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStruct{}, src)
-		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
+		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
 	}
 }
 
@@ -387,7 +385,7 @@ func TestCompareMapToStruct_MissingFieldsEmbedded(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src)
-		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
+		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
 	}
 }
 
@@ -422,6 +420,6 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
-		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
+		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
 	}
 }
