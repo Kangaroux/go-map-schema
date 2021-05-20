@@ -87,8 +87,6 @@ func CanConvert(t reflect.Type, v reflect.Value) bool {
 }
 
 func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
-	v := reflect.ValueOf(dst)
-	t := v.Elem().Type()
 	results := &CompareResults{
 		dst:              dst,
 		src:              src,
@@ -96,11 +94,23 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 		MissingFields:    []string{},
 	}
 
+	compare(reflect.ValueOf(dst).Elem().Type(), src, results)
+
+	return results
+}
+
+func compare(t reflect.Type, src map[string]interface{}, results *CompareResults) {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		fieldName, skip := parseField(f)
 
 		if skip {
+			continue
+		}
+
+		// If the field is embedded also check its fields.
+		if f.Anonymous {
+			compare(f.Type, src, results)
 			continue
 		}
 
@@ -120,6 +130,4 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 			results.MissingFields = append(results.MissingFields, fieldName)
 		}
 	}
-
-	return results
 }

@@ -16,6 +16,11 @@ type TestStruct struct {
 	Baz float64
 }
 
+type TestStructEmbedded struct {
+	TestStruct
+	Butt bool
+}
+
 type TestStructPtr struct {
 	Ptr *string
 }
@@ -96,6 +101,78 @@ func TestCompare_MismatchedFieldsSimple(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r := compare.Compare(&TestStruct{}, src)
+		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
+	}
+}
+
+// Tests that Compare treats embedded structs as if all the embedded fields
+// were moved into the parent struct.
+func TestCompare_MismatchedFieldsEmbedded(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []mismatch
+	}{
+		{
+			srcJson:  `{}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson:  `{"Foo":"","Bar":0,"Baz":3.14,"Butt":false}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson: `{"Foo":null}`,
+			expected: []mismatch{
+				{
+					Field:    "Foo",
+					Expected: "string",
+					Actual:   "null",
+				},
+			},
+		},
+		{
+			srcJson: `{"Bar":"hi"}`,
+			expected: []mismatch{
+				{
+					Field:    "Bar",
+					Expected: "int",
+					Actual:   "string",
+				},
+			},
+		},
+		{
+			srcJson: `{"Foo":true,"Baz":""}`,
+			expected: []mismatch{
+				{
+					Field:    "Foo",
+					Expected: "string",
+					Actual:   "bool",
+				},
+				{
+					Field:    "Baz",
+					Expected: "float64",
+					Actual:   "string",
+				},
+			},
+		},
+		{
+			srcJson: `{"Butt":"hi"}`,
+			expected: []mismatch{
+				{
+					Field:    "Butt",
+					Expected: "bool",
+					Actual:   "string",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r := compare.Compare(&TestStructEmbedded{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -227,6 +304,45 @@ func TestCompare_MissingFields(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r := compare.Compare(&TestStruct{}, src)
+		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
+	}
+}
+
+// Tests that Compare identifies and returns a list of fields that are in
+// dst but not src, including embedded fields.
+func TestCompare_MissingFieldsEmbedded(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []string
+	}{
+		{
+			srcJson:  `{}`,
+			expected: []string{"Foo", "Bar", "Baz", "Butt"},
+		},
+		{
+			srcJson:  `{"Foo":""}`,
+			expected: []string{"Bar", "Baz", "Butt"},
+		},
+		{
+			srcJson:  `{"Foo":"","Bar":0}`,
+			expected: []string{"Baz", "Butt"},
+		},
+		{
+			srcJson:  `{"Foo":"","Bar":0,"Baz":3.14}`,
+			expected: []string{"Butt"},
+		},
+		{
+			srcJson:  `{"Foo":"","Bar":0,"Baz":3.14,"Butt":false}`,
+			expected: []string{},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r := compare.Compare(&TestStructEmbedded{}, src)
 		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
