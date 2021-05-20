@@ -159,6 +159,8 @@ func compare(t reflect.Type, src map[string]interface{}, results *CompareResults
 	}
 }
 
+// isFloatType returns true if the type is a floating point. Note that this doesn't
+// care about the value -- unmarshaling the number "0" gives a float, not an int.
 func isFloatType(t reflect.Type) (yes bool) {
 	switch t.Kind() {
 	case reflect.Float32, reflect.Float64:
@@ -168,6 +170,7 @@ func isFloatType(t reflect.Type) (yes bool) {
 	return
 }
 
+// isIntegerType returns whether the type is an integer and if it's unsigned.
 func isIntegerType(t reflect.Type) (yes bool, unsigned bool) {
 	switch t.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
