@@ -82,7 +82,7 @@ func main() {
 
     // The struct we want to load the payload into (dst).
     p := Person{}
-    results, _ := schema.CompareMapToStruct(&p, m)
+    results, _ := schema.CompareMapToStruct(&p, m, nil)
 
     fmt.Println("missing fields:   ", results.MissingFields)
     fmt.Println("mismatched fields:", results.MismatchedFields)
@@ -97,3 +97,19 @@ mismatched fields: [expected "age" to be a int but it's a string]
 ```
 
 `FieldMismatch.String()` returns a simple user friendly message describing what the issue is. You can of course use your own custom message instead.
+
+## Universal Type Names
+
+By default, `CompareMapToStruct` will use the `TypeNameDetailed` func when reporting a type mismatch. The detailed type name includes some extra information that you may not want a client to see.
+
+For example, trying to convert a `float64` into an `int32` will report a mismatch between `float64` and `int32`.
+
+If you don't want to include bit size, you can use `TypeNameSimple` which converts `floatX -> float`, `intX -> int`, `uintX -> uint`.
+
+```go
+opts := &schema.CompareOpts{
+    TypeNameFunc: schema.TypeNameSimple,
+}
+
+schema.CompareMapToStruct(dst, src, opts)
+```
