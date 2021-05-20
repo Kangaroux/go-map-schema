@@ -50,11 +50,15 @@ func toJson(val interface{}) string {
 func TestCompareMapToStruct_BadDstErrors(t *testing.T) {
 	var err error
 	m := make(map[string]interface{})
+	v := "hello"
 
 	_, err = schema.CompareMapToStruct(123, m, nil)
 	require.Error(t, err)
 
-	_, err = schema.CompareMapToStruct("hello", m, nil)
+	_, err = schema.CompareMapToStruct(v, m, nil)
+	require.Error(t, err)
+
+	_, err = schema.CompareMapToStruct(&v, m, nil)
 	require.Error(t, err)
 
 	_, err = schema.CompareMapToStruct(nil, m, nil)

@@ -94,11 +94,7 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 
 	v := reflect.ValueOf(dst)
 
-	if !v.IsValid() || v.Kind() != reflect.Ptr {
-		return nil, errors.New("dst must be a pointer to a struct")
-	} else if v.IsNil() {
-		return nil, errors.New("dst must not be nil")
-	} else if v.Elem().Kind() != reflect.Struct {
+	if !v.IsValid() || v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
 		return nil, errors.New("dst must be a pointer to a struct")
 	} else if src == nil {
 		return nil, errors.New("src must not be nil")
