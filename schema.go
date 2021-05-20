@@ -29,6 +29,7 @@ type FieldMismatch struct {
 	Actual string
 }
 
+// String returns a user friendly message explaining the type mismatch.
 func (f FieldMismatch) String() string {
 	return fmt.Sprintf(`expected "%s" to be a %s but it's a %s`, f.Field, f.Expected, f.Actual)
 }
