@@ -51,19 +51,19 @@ func TestCompareMapToStruct_BadDstErrors(t *testing.T) {
 	var err error
 	m := make(map[string]interface{})
 
-	_, err = schema.CompareMapToStruct(123, m)
+	_, err = schema.CompareMapToStruct(123, m, nil)
 	require.Error(t, err)
 
-	_, err = schema.CompareMapToStruct("hello", m)
+	_, err = schema.CompareMapToStruct("hello", m, nil)
 	require.Error(t, err)
 
-	_, err = schema.CompareMapToStruct(nil, m)
+	_, err = schema.CompareMapToStruct(nil, m, nil)
 	require.Error(t, err)
 
-	_, err = schema.CompareMapToStruct(TestStruct{}, m)
+	_, err = schema.CompareMapToStruct(TestStruct{}, m, nil)
 	require.Error(t, err)
 
-	_, err = schema.CompareMapToStruct(&TestStruct{}, m)
+	_, err = schema.CompareMapToStruct(&TestStruct{}, m, nil)
 	require.NoError(t, err)
 }
 
@@ -71,10 +71,10 @@ func TestCompareMapToStruct_BadDstErrors(t *testing.T) {
 func TestCompareMapToStruct_BadSrcErrors(t *testing.T) {
 	var err error
 
-	_, err = schema.CompareMapToStruct(&TestStruct{}, nil)
+	_, err = schema.CompareMapToStruct(&TestStruct{}, nil, nil)
 	require.Error(t, err)
 
-	_, err = schema.CompareMapToStruct(&TestStruct{}, make(map[string]interface{}))
+	_, err = schema.CompareMapToStruct(&TestStruct{}, make(map[string]interface{}), nil)
 	require.NoError(t, err)
 }
 
@@ -156,7 +156,7 @@ func TestCompareMapToStruct_MismatchedFieldsSimple(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStruct{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
@@ -228,7 +228,7 @@ func TestCompareMapToStruct_MismatchedFieldsEmbedded(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src, nil)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
@@ -268,7 +268,7 @@ func TestCompareMapToStruct_MismatchedFieldsPtr(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStructPtr{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructPtr{}, src, nil)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
@@ -324,7 +324,7 @@ func TestCompareMapToStruct_MismatchedFieldsTags(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src, nil)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
@@ -375,7 +375,7 @@ func TestCompareMapToStruct_MismatchedFieldsUnsigned(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStructUnsigned{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructUnsigned{}, src, nil)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }
@@ -410,7 +410,7 @@ func TestCompareMapToStruct_MissingFields(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStruct{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
 		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
 	}
 }
@@ -449,7 +449,7 @@ func TestCompareMapToStruct_MissingFieldsEmbedded(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src, nil)
 		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
 	}
 }
@@ -484,7 +484,7 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
+		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src, nil)
 		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
 	}
 }

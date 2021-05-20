@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+type ConvertibleFunc func(t reflect.Type, v reflect.Value) bool
+
+type CompareOpts struct {
+	ConvertibleFunc ConvertibleFunc
+}
+
 // FieldMismatch represents a type mismatch between a struct field and a map field.
 type FieldMismatch struct {
 	// Field is the JSON name of the field.
@@ -60,7 +66,15 @@ Embedded structs work as you might expect. The fields of the struct are treated 
 if they were hardcoded into dst. In other words, embedding does not change how
 src should be structured.
 */
-func CompareMapToStruct(dst interface{}, src map[string]interface{}) (*CompareResults, error) {
+func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *CompareOpts) (*CompareResults, error) {
+	if opts == nil {
+		opts = &CompareOpts{
+			ConvertibleFunc: DefaultCanConvert,
+		}
+	} else if opts.ConvertibleFunc == nil {
+		opts.ConvertibleFunc = DefaultCanConvert
+	}
+
 	v := reflect.ValueOf(dst)
 
 	if !v.IsValid() || v.Kind() != reflect.Ptr {
@@ -78,16 +92,16 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}) (*CompareRe
 		MissingFields:    []string{},
 	}
 
-	compare(v.Elem().Type(), src, results)
+	compare(v.Elem().Type(), src, opts, results)
 
 	return results, nil
 }
 
-// canConvert returns whether value v is convertible to type t.
+// DefaultCanConvert returns whether value v is convertible to type t.
 //
 // If t is a pointer and v is not nil, it checks if v is convertible to the type that
 // t points to.
-func canConvert(t reflect.Type, v reflect.Value) bool {
+func DefaultCanConvert(t reflect.Type, v reflect.Value) bool {
 	isPtr := t.Kind() == reflect.Ptr
 	dstType := t
 
@@ -126,7 +140,7 @@ func canConvert(t reflect.Type, v reflect.Value) bool {
 }
 
 // compare performs the actual check between the map fields and the struct fields.
-func compare(t reflect.Type, src map[string]interface{}, results *CompareResults) {
+func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, results *CompareResults) {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		fieldName, skip := parseField(f)
@@ -137,14 +151,14 @@ func compare(t reflect.Type, src map[string]interface{}, results *CompareResults
 
 		// If the field is embedded also check its fields.
 		if f.Anonymous {
-			compare(f.Type, src, results)
+			compare(f.Type, src, opts, results)
 			continue
 		}
 
 		if srcField, ok := src[fieldName]; ok {
 			srcValue := reflect.ValueOf(srcField)
 
-			if !canConvert(f.Type, srcValue) {
+			if !opts.ConvertibleFunc(f.Type, srcValue) {
 				mismatch := FieldMismatch{
 					Field:    fieldName,
 					Expected: typeNameFromType(f.Type),
