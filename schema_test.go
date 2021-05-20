@@ -32,6 +32,10 @@ type TestStructTags struct {
 	Hyphen      string `json:"-,"`
 }
 
+type TestStructUnsigned struct {
+	Foo uint
+}
+
 func toJson(val interface{}) string {
 	out, err := json.Marshal(val)
 
@@ -97,6 +101,16 @@ func TestCompareMapToStruct_MismatchedFieldsSimple(t *testing.T) {
 					Field:    "Foo",
 					Expected: "string",
 					Actual:   "null",
+				},
+			},
+		},
+		{
+			srcJson: `{"Foo":0}`,
+			expected: []mismatch{
+				{
+					Field:    "Foo",
+					Expected: "string",
+					Actual:   "float64",
 				},
 			},
 		},
@@ -311,6 +325,57 @@ func TestCompareMapToStruct_MismatchedFieldsTags(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
+	}
+}
+
+// Tests that CompareMapToStruct identifies negative numbers when the dst type
+// is unsigned.
+func TestCompareMapToStruct_MismatchedFieldsUnsigned(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []mismatch
+	}{
+		{
+			srcJson:  `{}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson:  `{"Foo":0}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson:  `{"Foo":1}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson: `{"Foo":-1}`,
+			expected: []mismatch{
+				{
+					Field:    "Foo",
+					Expected: "uint",
+					Actual:   "float64",
+				},
+			},
+		},
+		{
+			srcJson: `{"Foo":1.5}`,
+			expected: []mismatch{
+				{
+					Field:    "Foo",
+					Expected: "uint",
+					Actual:   "float64",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(&TestStructUnsigned{}, src)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
 	}
 }

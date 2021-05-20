@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 )
@@ -104,6 +105,23 @@ func canConvert(t reflect.Type, v reflect.Value) bool {
 		return false
 	}
 
+	// Handle converting to an integer type.
+	if dstInt, unsigned := isIntegerType(dstType); dstInt {
+		if isFloatType(v.Type()) {
+			f := v.Float()
+
+			if math.Trunc(f) != f {
+				return false
+			} else if unsigned && f < 0 {
+				return false
+			}
+		} else if srcInt, _ := isIntegerType(v.Type()); srcInt {
+			if unsigned && v.Int() < 0 {
+				return false
+			}
+		}
+	}
+
 	return true
 }
 
@@ -139,6 +157,27 @@ func compare(t reflect.Type, src map[string]interface{}, results *CompareResults
 			results.MissingFields = append(results.MissingFields, fieldName)
 		}
 	}
+}
+
+func isFloatType(t reflect.Type) (yes bool) {
+	switch t.Kind() {
+	case reflect.Float32, reflect.Float64:
+		yes = true
+	}
+
+	return
+}
+
+func isIntegerType(t reflect.Type) (yes bool, unsigned bool) {
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		yes = true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		yes = true
+		unsigned = true
+	}
+
+	return
 }
 
 // parseField returns the field's JSON name.
