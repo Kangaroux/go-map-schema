@@ -83,6 +83,52 @@ func TestCompareMapToStruct_BadSrcErrors(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Tests that CompareMapToStruct uses the provided functions in the compare options.
+func TestCompareMapToStruct_CompareOptsUsesProvidedFuncs(t *testing.T) {
+	convertibleCalled := false
+	convertibleFunc := func(t reflect.Type, v reflect.Value) bool { convertibleCalled = true; return false }
+
+	typeNameCalled := false
+	typeNameFunc := func(t reflect.Type) string { typeNameCalled = true; return "" }
+
+	src := make(map[string]interface{})
+	json.Unmarshal([]byte(`{"Foo":""}`), &src)
+
+	opts := &schema.CompareOpts{
+		ConvertibleFunc: convertibleFunc,
+		TypeNameFunc:    typeNameFunc,
+	}
+
+	schema.CompareMapToStruct(&TestStruct{}, src, opts)
+
+	require.True(t, convertibleCalled)
+	require.True(t, typeNameCalled)
+}
+
+// Tests that CompareMapToStruct sets defaults if it receives a compare options instance
+// but one or more of the functions are nil.
+func TestCompareMapToStruct_CompareOptsSetsDefaults(t *testing.T) {
+	srcJson := `{"Foo":true,"Baz":""}`
+	expected := []mismatch{
+		{
+			Field:    "Foo",
+			Expected: "string",
+			Actual:   "bool",
+		},
+		{
+			Field:    "Baz",
+			Expected: "float64",
+			Actual:   "string",
+		},
+	}
+
+	src := make(map[string]interface{})
+	json.Unmarshal([]byte(srcJson), &src)
+
+	r, _ := schema.CompareMapToStruct(&TestStruct{}, src, &schema.CompareOpts{})
+	require.JSONEq(t, toJson(expected), toJson(r.MismatchedFields))
+}
+
 // Tests that CompareMapToStruct identifies fields in src that can't be converted
 // to the field in dst, due to a type mismatch (e.g. src:string -> dst:int).
 // This only tests "simple" types (no pointers, lists, structs, etc.)

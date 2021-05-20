@@ -84,6 +84,12 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 			TypeNameFunc:    TypeNameDetailed,
 		}
 	} else {
+		// Create a copy of the options since we might need to modify it.
+		opts = &CompareOpts{
+			ConvertibleFunc: opts.ConvertibleFunc,
+			TypeNameFunc:    opts.TypeNameFunc,
+		}
+
 		if opts.ConvertibleFunc == nil {
 			opts.ConvertibleFunc = DefaultCanConvert
 		}
