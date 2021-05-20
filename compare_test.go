@@ -16,6 +16,10 @@ type testStruct struct {
 	Baz float64
 }
 
+type testStructPtr struct {
+	Ptr *string
+}
+
 func toJson(val interface{}) string {
 	out, err := json.Marshal(val)
 
@@ -84,6 +88,38 @@ func TestCompare_MismatchedFields(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r := compare.Compare(&testStruct{}, src)
+		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected))
+	}
+}
+
+// Tests that Compare identifies pointer fields.
+func TestCompare_MismatchedFieldsPtr(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []mismatch
+	}{
+		{
+			srcJson:  `{"Ptr":null}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson: `{"Ptr":0}`,
+			expected: []mismatch{
+				{
+					Field:    "Ptr",
+					Expected: "*string",
+					Actual:   "float64",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r := compare.Compare(&testStructPtr{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected))
 	}
 }

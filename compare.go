@@ -27,7 +27,15 @@ func (r *CompareResults) String() string {
 	return fmt.Sprintf("CompareResults<missing=%v, dst=%s, src=%v>", r.MissingFields, r.Dst().Name(), r.src)
 }
 
-func valueTypeName(v reflect.Value) string {
+func typeNameFromType(t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		return fmt.Sprintf("*%s", t.Elem().Name())
+	}
+
+	return t.Name()
+}
+
+func typeNameFromValue(v reflect.Value) string {
 	if !v.IsValid() {
 		return "null"
 	}
@@ -63,8 +71,8 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 			if !CanConvert(f.Type, srcValue) {
 				mismatch := FieldMismatch{
 					Field:    f.Name,
-					Expected: f.Type.Name(),
-					Actual:   valueTypeName(srcValue),
+					Expected: typeNameFromType(f.Type),
+					Actual:   typeNameFromValue(srcValue),
 				}
 
 				results.MismatchedFields = append(results.MismatchedFields, mismatch)
