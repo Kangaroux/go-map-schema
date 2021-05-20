@@ -18,65 +18,7 @@ type CompareResults struct {
 	MissingFields    []string
 }
 
-func parseField(f reflect.StructField) (name string, ignore bool) {
-	tag := f.Tag.Get("json")
-
-	if tag == "" {
-		return f.Name, false
-	}
-
-	if tag == "-" {
-		return "", true
-	}
-
-	if i := strings.Index(tag, ","); i != -1 {
-		if i == 0 {
-			return f.Name, false
-		} else {
-			return tag[:i], false
-		}
-	}
-
-	return tag, false
-}
-
-func typeNameFromType(t reflect.Type) string {
-	if t.Kind() == reflect.Ptr {
-		return fmt.Sprintf("*%s", t.Elem().Name())
-	}
-
-	return t.Name()
-}
-
-func typeNameFromValue(v reflect.Value) string {
-	if !v.IsValid() {
-		return "null"
-	}
-
-	return v.Type().Name()
-}
-
-// CanConvert returns whether value v is convertible to type t.
-//
-// If t is a pointer and v is not nil, it checks if v is convertible to the type that
-// t points to.
-func CanConvert(t reflect.Type, v reflect.Value) bool {
-	isPtr := t.Kind() == reflect.Ptr
-
-	// Check if v is a nil value.
-	if !v.IsValid() || (v.CanAddr() && v.IsNil()) {
-		return isPtr
-	}
-
-	// If the dst is a pointer, check if we can convert to the type it's pointing to.
-	if isPtr {
-		return t.Elem().ConvertibleTo(v.Type())
-	}
-
-	return v.Type().ConvertibleTo(t)
-}
-
-func Compare(dst interface{}, src map[string]interface{}) (*CompareResults, error) {
+func CompareMapToStruct(dst interface{}, src map[string]interface{}) (*CompareResults, error) {
 	v := reflect.ValueOf(dst)
 
 	if !v.IsValid() || v.Kind() != reflect.Ptr {
@@ -99,6 +41,27 @@ func Compare(dst interface{}, src map[string]interface{}) (*CompareResults, erro
 	return results, nil
 }
 
+// canConvert returns whether value v is convertible to type t.
+//
+// If t is a pointer and v is not nil, it checks if v is convertible to the type that
+// t points to.
+func canConvert(t reflect.Type, v reflect.Value) bool {
+	isPtr := t.Kind() == reflect.Ptr
+
+	// Check if v is a nil value.
+	if !v.IsValid() || (v.CanAddr() && v.IsNil()) {
+		return isPtr
+	}
+
+	// If the dst is a pointer, check if we can convert to the type it's pointing to.
+	if isPtr {
+		return t.Elem().ConvertibleTo(v.Type())
+	}
+
+	return v.Type().ConvertibleTo(t)
+}
+
+// compare performs the actual check between the map fields and the struct fields.
 func compare(t reflect.Type, src map[string]interface{}, results *CompareResults) {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
@@ -117,7 +80,7 @@ func compare(t reflect.Type, src map[string]interface{}, results *CompareResults
 		if srcField, ok := src[fieldName]; ok {
 			srcValue := reflect.ValueOf(srcField)
 
-			if !CanConvert(f.Type, srcValue) {
+			if !canConvert(f.Type, srcValue) {
 				mismatch := FieldMismatch{
 					Field:    fieldName,
 					Expected: typeNameFromType(f.Type),
@@ -130,4 +93,46 @@ func compare(t reflect.Type, src map[string]interface{}, results *CompareResults
 			results.MissingFields = append(results.MissingFields, fieldName)
 		}
 	}
+}
+
+// parseField returns the field's JSON name.
+func parseField(f reflect.StructField) (name string, ignore bool) {
+	tag := f.Tag.Get("json")
+
+	if tag == "" {
+		return f.Name, false
+	}
+
+	if tag == "-" {
+		return "", true
+	}
+
+	if i := strings.Index(tag, ","); i != -1 {
+		if i == 0 {
+			return f.Name, false
+		} else {
+			return tag[:i], false
+		}
+	}
+
+	return tag, false
+}
+
+// typeNameFromType returns the type's name, and handles pointer types.
+func typeNameFromType(t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		return fmt.Sprintf("*%s", t.Elem().Name())
+	}
+
+	return t.Name()
+}
+
+// typeNameFromValue returns the name of the value's type. If the value is invalid
+// (usually from unmarshaling a null) returns "null".
+func typeNameFromValue(v reflect.Value) string {
+	if !v.IsValid() {
+		return "null"
+	}
+
+	return v.Type().Name()
 }
