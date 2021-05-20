@@ -3,6 +3,7 @@ package compare
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type FieldMismatch struct {
@@ -25,6 +26,28 @@ func (r *CompareResults) Dst() reflect.Type {
 
 func (r *CompareResults) String() string {
 	return fmt.Sprintf("CompareResults<missing=%v, dst=%s, src=%v>", r.MissingFields, r.Dst().Name(), r.src)
+}
+
+func parseField(f reflect.StructField) (name string, ignore bool) {
+	tag := f.Tag.Get("json")
+
+	if tag == "" {
+		return f.Name, false
+	}
+
+	if tag == "-" {
+		return "", true
+	}
+
+	if i := strings.Index(tag, ","); i != -1 {
+		if i == 0 {
+			return f.Name, false
+		} else {
+			return tag[:i], false
+		}
+	}
+
+	return tag, false
 }
 
 func typeNameFromType(t reflect.Type) string {
@@ -75,13 +98,18 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
+		fieldName, skip := parseField(f)
 
-		if srcField, ok := src[f.Name]; ok {
+		if skip {
+			continue
+		}
+
+		if srcField, ok := src[fieldName]; ok {
 			srcValue := reflect.ValueOf(srcField)
 
 			if !CanConvert(f.Type, srcValue) {
 				mismatch := FieldMismatch{
-					Field:    f.Name,
+					Field:    fieldName,
 					Expected: typeNameFromType(f.Type),
 					Actual:   typeNameFromValue(srcValue),
 				}
@@ -89,7 +117,7 @@ func Compare(dst interface{}, src map[string]interface{}) *CompareResults {
 				results.MismatchedFields = append(results.MismatchedFields, mismatch)
 			}
 		} else {
-			results.MissingFields = append(results.MissingFields, f.Name)
+			results.MissingFields = append(results.MissingFields, fieldName)
 		}
 	}
 

@@ -10,14 +10,21 @@ import (
 
 type mismatch compare.FieldMismatch
 
-type testStruct struct {
+type TestStruct struct {
 	Foo string
 	Bar int
 	Baz float64
 }
 
-type testStructPtr struct {
+type TestStructPtr struct {
 	Ptr *string
+}
+
+type TestStructTags struct {
+	LowercaseA  string `json:"a"`
+	IgnoreMe    string `json:"-"`
+	WithOptions string `json:",omitempty"`
+	Hyphen      string `json:"-,"`
 }
 
 func toJson(val interface{}) string {
@@ -31,8 +38,9 @@ func toJson(val interface{}) string {
 }
 
 // Tests that Compare identifies fields in src that can't be converted
-// to the field in dst, due to a type mismatch (e.g. src:string -> dst:int)
-func TestCompare_MismatchedFields(t *testing.T) {
+// to the field in dst, due to a type mismatch (e.g. src:string -> dst:int).
+// This only tests "simple" types (no pointers, lists, structs, etc.)
+func TestCompare_MismatchedFieldsSimple(t *testing.T) {
 	tests := []struct {
 		srcJson  string
 		expected []mismatch
@@ -87,17 +95,21 @@ func TestCompare_MismatchedFields(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&testStruct{}, src)
+		r := compare.Compare(&TestStruct{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
 
-// Tests that Compare identifies pointer fields.
+// Tests that Compare identifies pointer fields and checks if the src value can be
 func TestCompare_MismatchedFieldsPtr(t *testing.T) {
 	tests := []struct {
 		srcJson  string
 		expected []mismatch
 	}{
+		{
+			srcJson:  `{}`,
+			expected: []mismatch{},
+		},
 		{
 			srcJson:  `{"Ptr":null}`,
 			expected: []mismatch{},
@@ -123,7 +135,63 @@ func TestCompare_MismatchedFieldsPtr(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&testStructPtr{}, src)
+		r := compare.Compare(&TestStructPtr{}, src)
+		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
+	}
+}
+
+// Tests that Compare identifies the fields in dst that have a json struct tag.
+func TestCompare_MismatchedFieldsTags(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []mismatch
+	}{
+		{
+			srcJson:  `{}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson: `{"a":0}`,
+			expected: []mismatch{
+				{
+					Field:    "a",
+					Expected: "string",
+					Actual:   "float64",
+				},
+			},
+		},
+		{
+			srcJson:  `{"IgnoreMe":0}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson: `{"WithOptions":0}`,
+			expected: []mismatch{
+				{
+					Field:    "WithOptions",
+					Expected: "string",
+					Actual:   "float64",
+				},
+			},
+		},
+		{
+			srcJson: `{"-":0}`,
+			expected: []mismatch{
+				{
+					Field:    "-",
+					Expected: "string",
+					Actual:   "float64",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r := compare.Compare(&TestStructTags{}, src)
 		require.JSONEq(t, toJson(r.MismatchedFields), toJson(test.expected), test.srcJson)
 	}
 }
@@ -158,7 +226,42 @@ func TestCompare_MissingFields(t *testing.T) {
 		src := make(map[string]interface{})
 		json.Unmarshal([]byte(test.srcJson), &src)
 
-		r := compare.Compare(&testStruct{}, src)
-		require.ElementsMatch(t, r.MissingFields, test.expected)
+		r := compare.Compare(&TestStruct{}, src)
+		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
+	}
+}
+
+// Tests that Compare identifies and returns a list of fields that are in
+// dst but not src, and correctly uses the json field name.
+func TestCompare_MissingFieldsTags(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []string
+	}{
+		{
+			srcJson:  `{}`,
+			expected: []string{"a", "-", "WithOptions"},
+		},
+		{
+			srcJson:  `{"a":""}`,
+			expected: []string{"-", "WithOptions"},
+		},
+		{
+			srcJson:  `{"-":""}`,
+			expected: []string{"a", "WithOptions"},
+		},
+		{
+			srcJson:  `{"WithOptions":""}`,
+			expected: []string{"a", "-"},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r := compare.Compare(&TestStructTags{}, src)
+		require.ElementsMatch(t, r.MissingFields, test.expected, test.srcJson)
 	}
 }
