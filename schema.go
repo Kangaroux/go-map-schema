@@ -19,6 +19,10 @@ type FieldMismatch struct {
 	Actual string
 }
 
+func (f FieldMismatch) String() string {
+	return fmt.Sprintf(`expected "%s" to be a %s but it's a %s`, f.Field, f.Expected, f.Actual)
+}
+
 // CompareResults contains the results of CompareMapToStruct.
 type CompareResults struct {
 	// MismatchedFields is a list of fields which have a type mismatch.
