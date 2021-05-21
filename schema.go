@@ -40,14 +40,31 @@ type FieldMismatch struct {
 	Actual string
 }
 
-// String returns a user friendly message explaining the type mismatch.
-func (f FieldMismatch) String() string {
+// Message returns the field mismatch error as a string.
+// e.g: "expected an int but it's a string"
+func (f FieldMismatch) Message() string {
+	return fmt.Sprintf(
+		`expected %s but it's %s`,
+		TypeNameWithArticle(f.Expected),
+		TypeNameWithArticle(f.Actual),
+	)
+}
+
+// Message returns the field mismatch error as a string, and includes the field name
+// in the message.
+// e.g: "expected Foo to be an int but it's a string"
+func (f FieldMismatch) MessageWithField() string {
 	return fmt.Sprintf(
 		`expected "%s" to be %s but it's %s`,
 		f.Field,
 		TypeNameWithArticle(f.Expected),
 		TypeNameWithArticle(f.Actual),
 	)
+}
+
+// String returns a user friendly message explaining the type mismatch.
+func (f FieldMismatch) String() string {
+	return f.MessageWithField()
 }
 
 // CompareOpts can be used to configure how CompareMapToStruct works.
