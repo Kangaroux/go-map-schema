@@ -17,6 +17,17 @@ type CompareResults struct {
 	MissingFields []string
 }
 
+// AsMap converts the mismatched fields to a map and returns it.
+func (cr *CompareResults) AsMap() map[string]interface{} {
+	m := make(map[string]interface{})
+
+	for _, f := range cr.MismatchedFields {
+		m[f.Field] = f.String()
+	}
+
+	return m
+}
+
 // FieldMismatch represents a type mismatch between a struct field and a map field.
 type FieldMismatch struct {
 	// Field is the JSON name of the field.
