@@ -540,6 +540,42 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 	}
 }
 
+// Tests that AsMap returns the expected map.
+func TestCompareResults_AsMap(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected map[string]interface{}
+	}{
+		{
+			srcJson:  `{}`,
+			expected: map[string]interface{}{},
+		},
+		{
+			srcJson: `{"Foo":null}`,
+			expected: map[string]interface{}{
+				"Foo": `expected "Foo" to be a string but it's a null`,
+			},
+		},
+		{
+			srcJson: `{"Foo":null,"Bar":true}`,
+			expected: map[string]interface{}{
+				"Foo": `expected "Foo" to be a string but it's a null`,
+				"Bar": `expected "Bar" to be a int but it's a bool`,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
+		require.JSONEq(t, toJson(test.expected), toJson(r.AsMap()), test.srcJson)
+	}
+}
+
+// Tests that TypeNameSimple returns the expected string.
 func TestTypeNameSimple(t *testing.T) {
 	tests := []struct {
 		val      interface{}
