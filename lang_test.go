@@ -96,3 +96,91 @@ func TestSimpleTypeName(t *testing.T) {
 		require.Equal(t, test.expected, name)
 	}
 }
+
+// Tests that TypeNameStartsWithVowel returns the expected result.
+func TestTypeNameStartsWithVowel(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected bool
+	}{
+		{
+			name:     "",
+			expected: false,
+		},
+		{
+			name:     "a",
+			expected: true,
+		},
+		{
+			name:     "e",
+			expected: true,
+		},
+		{
+			name:     "i",
+			expected: true,
+		},
+		{
+			name:     "o",
+			expected: true,
+		},
+		{
+			name:     "u",
+			expected: false,
+		},
+		{
+			name:     "int",
+			expected: true,
+		},
+		{
+			name:     "*int",
+			expected: true,
+		},
+		{
+			name:     "string",
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		actual := schema.TypeNameStartsWithVowel(test.name)
+		require.Equal(t, test.expected, actual)
+	}
+}
+
+// Tests that TypeNameStartsWithVowel returns the expected result.
+func TestTypeNameWithArticle(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected string
+	}{
+		{
+			name:     "float",
+			expected: "a float",
+		},
+		{
+			name:     "int",
+			expected: "an int",
+		},
+		{
+			name:     "*string",
+			expected: "a *string",
+		},
+		{
+			name:     "*int",
+			expected: "an *int",
+		},
+		{
+			name:     "null",
+			expected: "null",
+		},
+		{
+			name:     "User",
+			expected: "a User",
+		},
+	}
+
+	for _, test := range tests {
+		actual := schema.TypeNameWithArticle(test.name)
+		require.Equal(t, test.expected, actual)
+	}
+}

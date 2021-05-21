@@ -47,6 +47,10 @@ func SimpleTypeName(t reflect.Type) string {
 // This doesn't include "u" as a vowel since words like "user" should be "a user"
 // and not "an user".
 func TypeNameStartsWithVowel(t string) bool {
+	if t == "" {
+		return false
+	}
+
 	t = strings.TrimLeft(t, "*")
 
 	switch strings.ToLower(t[:1]) {
