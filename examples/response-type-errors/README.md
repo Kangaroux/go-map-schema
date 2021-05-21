@@ -1,0 +1,1 @@
+This example shows how you might generate a JSON response if the client's request has some type errors.
