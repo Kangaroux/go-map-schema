@@ -22,7 +22,7 @@ func (cr *CompareResults) AsMap() map[string]interface{} {
 	m := make(map[string]interface{})
 
 	for _, f := range cr.MismatchedFields {
-		m[f.Field] = f.String()
+		m[f.Field] = f.Message()
 	}
 
 	return m

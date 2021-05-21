@@ -21,7 +21,7 @@ type Person struct {
 ```json
 {
     "errors": {
-        "age": "expected \"age\" to be an int but it's a string"
+        "age": "expected an int but it's a string"
     },
     "ok": false
 }
