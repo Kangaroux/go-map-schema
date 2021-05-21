@@ -54,19 +54,19 @@ func TestCompareMapToStruct_BadDstErrors(t *testing.T) {
 	v := "hello"
 
 	_, err = schema.CompareMapToStruct(123, m, nil)
-	require.Error(t, err)
+	require.Equal(t, schema.ErrInvalidDst, err)
 
 	_, err = schema.CompareMapToStruct(v, m, nil)
-	require.Error(t, err)
+	require.Equal(t, schema.ErrInvalidDst, err)
 
 	_, err = schema.CompareMapToStruct(&v, m, nil)
-	require.Error(t, err)
+	require.Equal(t, schema.ErrInvalidDst, err)
 
 	_, err = schema.CompareMapToStruct(nil, m, nil)
-	require.Error(t, err)
+	require.Equal(t, schema.ErrInvalidDst, err)
 
 	_, err = schema.CompareMapToStruct(TestStruct{}, m, nil)
-	require.Error(t, err)
+	require.Equal(t, schema.ErrInvalidDst, err)
 
 	_, err = schema.CompareMapToStruct(&TestStruct{}, m, nil)
 	require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestCompareMapToStruct_BadSrcErrors(t *testing.T) {
 	var err error
 
 	_, err = schema.CompareMapToStruct(&TestStruct{}, nil, nil)
-	require.Error(t, err)
+	require.Equal(t, schema.ErrNilSrc, err)
 
 	_, err = schema.CompareMapToStruct(&TestStruct{}, make(map[string]interface{}), nil)
 	require.NoError(t, err)

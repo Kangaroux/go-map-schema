@@ -67,6 +67,11 @@ type ConvertibleFunc func(t reflect.Type, v reflect.Value) bool
 // TypeNameFunc takes a reflection type and returns its name as a string.
 type TypeNameFunc func(t reflect.Type) string
 
+var (
+	ErrInvalidDst = errors.New("dst must be a pointer to a struct")
+	ErrNilSrc     = errors.New("src must not be nil")
+)
+
 /*
 CompareMapToStruct takes a pointer to a struct (dst) and a map (src). For each field
 in dst, it checks if: the field is in src, and if the types are compatible. The name
@@ -118,9 +123,9 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 	v := reflect.ValueOf(dst)
 
 	if !v.IsValid() || v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
-		return nil, errors.New("dst must be a pointer to a struct")
+		return nil, ErrInvalidDst
 	} else if src == nil {
-		return nil, errors.New("src must not be nil")
+		return nil, ErrNilSrc
 	}
 
 	results := &CompareResults{
