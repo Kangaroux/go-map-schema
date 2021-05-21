@@ -100,15 +100,15 @@ mismatched fields: [expected "age" to be a int but it's a string]
 
 ## Universal Type Names
 
-By default, `CompareMapToStruct` will use the `TypeNameDetailed` func when reporting a type mismatch. The detailed type name includes some extra information that you may not want a client to see.
+By default, `CompareMapToStruct` will use the `DetailedTypeName` func when reporting a type mismatch. The detailed type name includes some extra information that you may not want a client to see.
 
 For example, trying to convert a `float64` into an `int32` will report a mismatch between `float64` and `int32`.
 
-If you don't want to include bit size, you can use `TypeNameSimple` which converts `floatX -> float`, `intX -> int`, `uintX -> uint`.
+If you don't want to include bit size, you can use `SimpleTypeName` which converts `floatX -> float`, `intX -> int`, `uintX -> uint`.
 
 ```go
 opts := &schema.CompareOpts{
-    TypeNameFunc: schema.TypeNameSimple,
+    TypeNameFunc: schema.SimpleTypeName,
 }
 
 schema.CompareMapToStruct(dst, src, opts)
