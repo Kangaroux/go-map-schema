@@ -42,7 +42,12 @@ type FieldMismatch struct {
 
 // String returns a user friendly message explaining the type mismatch.
 func (f FieldMismatch) String() string {
-	return fmt.Sprintf(`expected "%s" to be a %s but it's a %s`, f.Field, f.Expected, f.Actual)
+	return fmt.Sprintf(
+		`expected "%s" to be %s but it's %s`,
+		f.Field,
+		typeNameWithArticle(f.Expected),
+		typeNameWithArticle(f.Actual),
+	)
 }
 
 // CompareOpts can be used to configure how CompareMapToStruct works.
@@ -294,4 +299,32 @@ func parseField(f reflect.StructField) (name string, ignore bool) {
 	}
 
 	return tag, false
+}
+
+// typeNameStartsWithVowel returns true if the type name starts with a vowel.
+// This doesn't include "u" as a vowel since words like "user" should be "a user"
+// and not "an user".
+func typeNameStartsWithVowel(t string) bool {
+	t = strings.TrimLeft(t, "*")
+
+	switch strings.ToLower(t[:1]) {
+	case "a", "e", "i", "o":
+		return true
+	}
+
+	return false
+}
+
+// typeNameWithArticle returns the type name with an indefinite article ("a" or "an").
+// If the type name is "null" it just returns "null".
+func typeNameWithArticle(t string) string {
+	if t == "null" {
+		return t
+	}
+
+	if typeNameStartsWithVowel(t) {
+		return "an " + t
+	} else {
+		return "a " + t
+	}
 }
