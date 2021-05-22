@@ -1,4 +1,18 @@
+# go-map-schema
+
 [![Go Reference](https://img.shields.io/badge/Go-Docs-blue?style=for-the-badge)](https://pkg.go.dev/github.com/Kangaroux/go-map-schema) ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/Kangaroux/go-map-schema?style=for-the-badge&label=Latest&color=green)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Use Case](#use-case)
+- [Examples](#examples)
+    - [Usage](#usage)
+    - [Full Code](#full-code)
+    - [Output](#output)
+- [Universal Type Names](#universal-type-names)
+
+## Overview
 
 `go-map-schema` is a tiny library that's useful for comparing a map (usually from JSON) to a struct, and finding any fields that are missing or that have incompatible types.
 
@@ -12,7 +26,13 @@ As a result, you end up with an API that has
 1. strict type checking, and
 2. can give the client helpful error messages when the request is invalid
 
-## Example
+# Examples
+
+Read below for a quick look at how you can use `go-map-schema`.
+
+For more examples, check out the [examples/](examples/) directory.
+
+## Usage
 
 Suppose we have a `Person` model
 
@@ -54,7 +74,8 @@ type CompareResults struct {
 
 With this, we can quickly see which fields have mismatched types, as well as any fields that are in the `Person` struct but not the JSON.
 
-### Full Example
+### Full Code
+
 ```go
 package main
 
@@ -98,7 +119,7 @@ mismatched fields: [expected "age" to be a int but it's a string]
 
 `FieldMismatch.String()` returns a simple user friendly message describing what the issue is. You can of course use your own custom message instead.
 
-## Universal Type Names
+# Universal Type Names
 
 By default, `CompareMapToStruct` will use the `DetailedTypeName` func when reporting a type mismatch. The detailed type name includes some extra information that you may not want a client to see.
 
