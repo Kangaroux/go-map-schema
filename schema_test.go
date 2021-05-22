@@ -553,14 +553,14 @@ func TestCompareResults_AsMap(t *testing.T) {
 		{
 			srcJson: `{"Foo":null}`,
 			expected: map[string]interface{}{
-				"Foo": `expected "Foo" to be a string but it's null`,
+				"Foo": `expected a string but it's null`,
 			},
 		},
 		{
 			srcJson: `{"Foo":1.23,"Bar":true}`,
 			expected: map[string]interface{}{
-				"Foo": `expected "Foo" to be a string but it's a float64`,
-				"Bar": `expected "Bar" to be an int but it's a bool`,
+				"Foo": `expected a string but it's a float64`,
+				"Bar": `expected an int but it's a bool`,
 			},
 		},
 	}
