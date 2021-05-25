@@ -6,6 +6,7 @@
 
 - [Overview](#overview)
 - [Use Case](#use-case)
+- [Do I Really Need This?](#do-i-really-need-this)
 - [Examples](#examples)
     - [Usage](#usage)
     - [Full Code](#full-code)
@@ -25,6 +26,12 @@ As a result, you end up with an API that has
 
 1. strict type checking, and
 2. can give the client helpful error messages when the request is invalid
+
+## Do I Really Need This?
+
+For something like an API, it's worth asking who is going to be the client that is using the API. Is this an API for your single page app, or are you providing a service and it will be used by other developers?
+
+If the API is "internal" and only used within the context of your site, I don't think it's necessary. But if someone is trying to use your API, I think it's worth having. API documentation is rarely perfect, and giving the client a readable error can help them debug when a request throws a 400 Bad Request.
 
 # Examples
 
