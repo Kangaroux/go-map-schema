@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -16,32 +14,6 @@ type CompareResults struct {
 
 	// MissingFields is a list of JSON field names which were not in src.
 	MissingFields []string
-}
-
-type MismatchError map[string]interface{}
-
-func (err MismatchError) Error() string {
-	b := strings.Builder{}
-
-	for key, val := range err {
-		if s, ok := val.(string); ok {
-			b.WriteString(fmt.Sprintf("%s: %s", key, s))
-			b.WriteString(", ")
-		}
-	}
-
-	s := b.String()
-
-	// Remove the trailing ", "
-	if s != "" {
-		s = s[:len(s)-2]
-	}
-
-	return s
-}
-
-func (err MismatchError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}(err))
 }
 
 // Errors returns a MismatchError containing the type errors. If there were no
@@ -115,11 +87,6 @@ type ConvertibleFunc func(t reflect.Type, v reflect.Value) bool
 
 // TypeNameFunc takes a reflection type and returns its name as a string.
 type TypeNameFunc func(t reflect.Type) string
-
-var (
-	ErrInvalidDst = errors.New("dst must be a pointer to a struct")
-	ErrNilSrc     = errors.New("src must not be nil")
-)
 
 /*
 CompareMapToStruct takes a pointer to a struct (dst) and a map (src). For each field
