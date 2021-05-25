@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -17,15 +18,46 @@ type CompareResults struct {
 	MissingFields []string
 }
 
-// AsMap converts the mismatched fields to a map and returns it.
-func (cr *CompareResults) AsMap() map[string]interface{} {
+type MismatchError map[string]interface{}
+
+func (err MismatchError) Error() string {
+	b := strings.Builder{}
+
+	for key, val := range err {
+		if s, ok := val.(string); ok {
+			b.WriteString(fmt.Sprintf("%s: %s", key, s))
+			b.WriteString(", ")
+		}
+	}
+
+	s := b.String()
+
+	// Remove the trailing ", "
+	if s != "" {
+		s = s[:len(s)-2]
+	}
+
+	return s
+}
+
+func (err MismatchError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(err)
+}
+
+// Errors returns a MismatchError containing the type errors. If there were no
+// type errors, returns nil.
+func (cr *CompareResults) Errors() error {
+	if len(cr.MismatchedFields) == 0 {
+		return nil
+	}
+
 	m := make(map[string]interface{})
 
 	for _, f := range cr.MismatchedFields {
 		m[f.Field] = f.Message()
 	}
 
-	return m
+	return MismatchError(m)
 }
 
 // FieldMismatch represents a type mismatch between a struct field and a map field.

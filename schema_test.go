@@ -540,28 +540,28 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 	}
 }
 
-// Tests that AsMap returns the expected map.
-func TestCompareResults_AsMap(t *testing.T) {
+// Tests that Errors returns the expected error map.
+func TestCompareResults_Errors(t *testing.T) {
 	tests := []struct {
 		srcJson  string
-		expected map[string]interface{}
+		expected error
 	}{
 		{
 			srcJson:  `{}`,
-			expected: map[string]interface{}{},
+			expected: nil,
 		},
 		{
 			srcJson: `{"Foo":null}`,
-			expected: map[string]interface{}{
+			expected: schema.MismatchError(map[string]interface{}{
 				"Foo": `expected a string but it's null`,
-			},
+			}),
 		},
 		{
 			srcJson: `{"Foo":1.23,"Bar":true}`,
-			expected: map[string]interface{}{
+			expected: schema.MismatchError(map[string]interface{}{
 				"Foo": `expected a string but it's a float64`,
 				"Bar": `expected an int but it's a bool`,
-			},
+			}),
 		},
 	}
 
@@ -571,6 +571,6 @@ func TestCompareResults_AsMap(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
-		require.JSONEq(t, toJson(test.expected), toJson(r.AsMap()), test.srcJson)
+		require.Equal(t, test.expected, r.Errors(), test.srcJson)
 	}
 }
