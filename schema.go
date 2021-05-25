@@ -41,7 +41,7 @@ func (err MismatchError) Error() string {
 }
 
 func (err MismatchError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(err)
+	return json.Marshal(map[string]interface{}(err))
 }
 
 // Errors returns a MismatchError containing the type errors. If there were no

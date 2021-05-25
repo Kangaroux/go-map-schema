@@ -547,10 +547,6 @@ func TestCompareResults_Errors(t *testing.T) {
 		expected error
 	}{
 		{
-			srcJson:  `{}`,
-			expected: nil,
-		},
-		{
 			srcJson: `{"Foo":null}`,
 			expected: schema.MismatchError(map[string]interface{}{
 				"Foo": `expected a string but it's null`,
@@ -571,6 +567,37 @@ func TestCompareResults_Errors(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
+
 		require.Equal(t, test.expected, r.Errors(), test.srcJson)
+
+		// Test marshaling the error to JSON.
+		require.JSONEq(t, toJson(test.expected), toJson(r.Errors()), test.srcJson)
+	}
+}
+
+// Tests that Errors returns nil when there are no type mismatches.
+func TestCompareResults_ErrorsReturnsNil(t *testing.T) {
+	tests := []struct {
+		srcJson string
+	}{
+		{
+			srcJson: `{}`,
+		},
+		{
+			srcJson: `{"Foo":"hi"}`,
+		},
+		{
+			srcJson: `{"Foo":"hi","Bar":1,"Baz":3.14}`,
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
+
+		require.Nil(t, r.Errors())
 	}
 }

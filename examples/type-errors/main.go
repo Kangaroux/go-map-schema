@@ -16,8 +16,8 @@ type Person struct {
 
 // Response is used to generate a JSON response.
 type Response struct {
-	Errors interface{} `json:"errors,omitempty"`
-	OK     bool        `json:"ok"`
+	Errors error `json:"errors,omitempty"`
+	OK     bool  `json:"ok"`
 }
 
 func main() {
@@ -40,16 +40,11 @@ func main() {
 		panic(err)
 	}
 
+	typeErrors := r.Errors()
 	resp := &Response{
-		OK: true,
+		OK:     typeErrors == nil,
+		Errors: typeErrors,
 	}
-
-	// Notify the client of any errors.
-	if len(r.MismatchedFields) > 0 {
-		resp.OK = false
-		resp.Errors = r.AsMap()
-	}
-
 	respJson, _ := json.Marshal(resp)
 
 	fmt.Println(string(respJson))
