@@ -184,3 +184,38 @@ func TestTypeNameWithArticle(t *testing.T) {
 		require.Equal(t, test.expected, actual)
 	}
 }
+
+// Tests that FieldNameWithPath returns the expected result.
+func TestFieldNameWithPath(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		path     []string
+		expected string
+	}{
+		{
+			name:     "user",
+			expected: "user",
+		},
+		{
+			name:     "cat",
+			path:     []string{},
+			expected: "cat",
+		},
+		{
+			name:     "email",
+			path:     []string{"user"},
+			expected: "user.email",
+		},
+		{
+			name:     "is_primary",
+			path:     []string{"user", "contacts", "email"},
+			expected: "user.contacts.email.is_primary",
+		},
+	}
+
+	for _, test := range tests {
+		actual := schema.FieldNameWithPath(test.name, test.path)
+		require.Equal(t, test.expected, actual)
+	}
+}
