@@ -9,9 +9,17 @@ import (
 
 // Person is the model we are using.
 type Person struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Age       int    `json:"age"`
+	FirstName string  `json:"first_name"`
+	LastName  string  `json:"last_name"`
+	Age       int     `json:"age"`
+	Address   Address `json:"address"`
+}
+
+// Address is the model we are using as nested for Person.
+type Address struct {
+	Country     string `json:"country"`
+	City        string `json:"city"`
+	AddressLine string `json:"address_line"`
 }
 
 // Response is used to generate a JSON response.
@@ -23,7 +31,11 @@ type Response struct {
 func main() {
 	input := `{
 		"first_name": "Jessie",
-		"age": "26"
+		"age": "26",
+		"address": {
+			"country": "Example country",
+			"city": "Example city"
+		}
 	}`
 	m := make(map[string]interface{})
 	p := Person{}

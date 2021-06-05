@@ -45,9 +45,16 @@ Suppose we have a `Person` model
 
 ```go
 type Person struct {
-    FirstName string `json:"first_name"`
-    LastName  string `json:"last_name"`
-    Age       int    `json:"age"`
+    FirstName string  `json:"first_name"`
+    LastName  string  `json:"last_name"`
+    Age       int     `json:"age"`
+    Address   Address `json:"address"`
+}
+
+type Address struct {
+    Country     string `json:"country"`
+    City        string `json:"city"`
+    AddressLine string `json:"address_line"`
 }
 ```
 
@@ -56,7 +63,11 @@ and a client comes along and makes a `POST` request with this JSON.
 ```json
 {
     "first_name": "Jessie",
-    "age": "26"
+    "age": "26",
+    "address": {
+      "country": "Example country",
+      "city": "Example city"
+    }
 }
 ```
 
@@ -75,7 +86,7 @@ After comparing we now have a `CompareResults` instance stored in `results`.
 ```go
 type CompareResults struct {
 	MismatchedFields []FieldMismatch
-	MissingFields    []string
+	MissingFields    []FieldMissing
 }
 ```
 
@@ -93,18 +104,31 @@ import (
     schema "github.com/Kangaroux/go-map-schema"
 )
 
+// Person is the model we are using.
 type Person struct {
-    FirstName string `json:"first_name"`
-    LastName  string `json:"last_name"`
-    Age       int    `json:"age"`
+  FirstName string  `json:"first_name"`
+  LastName  string  `json:"last_name"`
+  Age       int     `json:"age"`
+  Address   Address `json:"address"`
+}
+
+// Address is the model we are using as nested for Person.
+type Address struct {
+  Country     string `json:"country"`
+  City        string `json:"city"`
+  AddressLine string `json:"address_line"`
 }
 
 func main() {
     // The JSON payload (src).
     payload := `{
-        "first_name": "Jessie",
-        "age": "26"
-    }`
+		"first_name": "Jessie",
+		"age": "26",
+		"address": {
+			"country": "Example country",
+			"city": "Example city"
+		}
+	}`
     m := make(map[string]interface{})
     json.Unmarshal([]byte(payload), &m)
 
@@ -120,7 +144,7 @@ func main() {
 ### Output
 
 ```
-missing fields:    [last_name]
+missing fields:    [last_name address.address_line]
 mismatched fields: [expected "age" to be a int but it's a string]
 ```
 
