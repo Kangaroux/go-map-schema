@@ -13,7 +13,7 @@ type CompareResults struct {
 	MismatchedFields []FieldMismatch
 
 	// MissingFields is a list of JSON field names which were not in src.
-	MissingFields []string
+	MissingFields []FieldMissing
 }
 
 // Errors returns a MismatchError containing the type errors. If there were no
@@ -32,6 +32,20 @@ func (cr *CompareResults) Errors() error {
 	return MismatchError(m)
 }
 
+type FieldMissing struct {
+	// Field is the JSON name of the field.
+	Field string
+
+	// Path is the full path to the field.
+	Path []string
+}
+
+// String returns the field name with its path.
+// e.g: "Cat.Foo"
+func (f FieldMissing) String() string {
+	return FieldNameWithPath(f.Field, f.Path)
+}
+
 // FieldMismatch represents a type mismatch between a struct field and a map field.
 type FieldMismatch struct {
 	// Field is the JSON name of the field.
@@ -42,6 +56,9 @@ type FieldMismatch struct {
 
 	// Actual is the actual type (type of the src field).
 	Actual string
+
+	// Path is the full path to the field.
+	Path []string
 }
 
 // Message returns the field mismatch error as a string.
@@ -55,12 +72,12 @@ func (f FieldMismatch) Message() string {
 }
 
 // Message returns the field mismatch error as a string, and includes the field name
-// in the message.
-// e.g: "expected Foo to be an int but it's a string"
+// with its path in the message.
+// e.g: "expected Cat.Foo to be an int but it's a string"
 func (f FieldMismatch) MessageWithField() string {
 	return fmt.Sprintf(
 		`expected "%s" to be %s but it's %s`,
-		f.Field,
+		FieldNameWithPath(f.Field, f.Path),
 		TypeNameWithArticle(f.Expected),
 		TypeNameWithArticle(f.Actual),
 	)
@@ -146,7 +163,7 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 
 	results := &CompareResults{
 		MismatchedFields: []FieldMismatch{},
-		MissingFields:    []string{},
+		MissingFields:    []FieldMissing{},
 	}
 
 	compare(v.Elem().Type(), src, opts, results)
@@ -160,6 +177,7 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 // t points to.
 func DefaultCanConvert(t reflect.Type, v reflect.Value) bool {
 	isPtr := t.Kind() == reflect.Ptr
+	isStruct := t.Kind() == reflect.Struct
 	dstType := t
 
 	// Check if v is a nil value.
@@ -170,6 +188,12 @@ func DefaultCanConvert(t reflect.Type, v reflect.Value) bool {
 	// If the dst is a pointer, check if we can convert to the type it's pointing to.
 	if isPtr {
 		dstType = t.Elem()
+		isStruct = t.Elem().Kind() == reflect.Struct
+	}
+
+	// If the dst is a struct, we should check its nested fields.
+	if isStruct {
+		return v.Kind() == reflect.Map
 	}
 
 	if !v.Type().ConvertibleTo(dstType) {
@@ -212,6 +236,9 @@ func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, resu
 			continue
 		}
 
+		// If the field is a nested struct also check its fields.
+		shouldCheckNested := isStructType(f.Type)
+
 		if srcField, ok := src[fieldName]; ok {
 			srcValue := reflect.ValueOf(srcField)
 
@@ -231,9 +258,47 @@ func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, resu
 				}
 
 				results.MismatchedFields = append(results.MismatchedFields, mismatch)
+				// There is no point to check nested fields if their parent is mismatched.
+				shouldCheckNested = false
 			}
 		} else {
-			results.MissingFields = append(results.MissingFields, fieldName)
+			missing := FieldMissing{Field: fieldName}
+
+			results.MissingFields = append(results.MissingFields, missing)
+			// There is no point to check nested fields if their parent is missing.
+			shouldCheckNested = false
+		}
+
+		if shouldCheckNested {
+			nested := src[fieldName].(map[string]interface{})
+			nestedType := f.Type
+			if f.Type.Kind() == reflect.Ptr {
+				nestedType = nestedType.Elem()
+			}
+
+			checkNestedFields(nestedType, fieldName, nested, opts, results)
+		}
+	}
+}
+
+func checkNestedFields(t reflect.Type, fieldName string, src map[string]interface{}, opts *CompareOpts, results *CompareResults) {
+	// Remember count of fields to check if new errors occured.
+	mismatchCount := len(results.MismatchedFields)
+	missingCount := len(results.MissingFields)
+
+	compare(t, src, opts, results)
+
+	// If there were new mismatched fields, add the current field name to their path.
+	if mismatchCount != len(results.MismatchedFields) {
+		for mi := mismatchCount; mi < len(results.MismatchedFields); mi++ {
+			results.MismatchedFields[mi].Path = append([]string{fieldName}, results.MismatchedFields[mi].Path...)
+		}
+	}
+
+	// If there were new missing fields, add the current field name to their path.
+	if missingCount != len(results.MissingFields) {
+		for mi := missingCount; mi < len(results.MissingFields); mi++ {
+			results.MissingFields[mi].Path = append([]string{fieldName}, results.MissingFields[mi].Path...)
 		}
 	}
 }
@@ -259,6 +324,17 @@ func isIntegerType(t reflect.Type) (yes bool, unsigned bool) {
 		unsigned = true
 	}
 
+	return
+}
+
+// isStructType returns whether the type is a struct or a pointer to it.
+func isStructType(t reflect.Type) (yes bool) {
+	switch t.Kind() {
+	case reflect.Struct:
+		yes = true
+	case reflect.Ptr:
+		yes = t.Elem().Kind() == reflect.Struct
+	}
 	return
 }
 

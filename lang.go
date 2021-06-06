@@ -74,3 +74,14 @@ func TypeNameWithArticle(t string) string {
 		return "a " + t
 	}
 }
+
+// FieldNameWithPath returns the field name including the path in the following format: parent1.parent2.name
+func FieldNameWithPath(f string, path []string) string {
+	b := strings.Builder{}
+	for _, p := range path {
+		b.WriteString(p + ".")
+	}
+	b.WriteString(f)
+
+	return b.String()
+}

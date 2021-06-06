@@ -10,6 +10,7 @@ import (
 )
 
 type mismatch schema.FieldMismatch
+type missing schema.FieldMissing
 
 type TestStruct struct {
 	Foo string
@@ -35,6 +36,17 @@ type TestStructTags struct {
 
 type TestStructUnsigned struct {
 	Foo uint
+}
+
+type TestStructNested struct {
+	User TestStruct
+	Cat  struct {
+		A *struct {
+			Baz string
+		}
+		B bool
+		C string
+	}
 }
 
 func toJson(val interface{}) string {
@@ -436,23 +448,23 @@ func TestCompareMapToStruct_MismatchedFieldsUnsigned(t *testing.T) {
 func TestCompareMapToStruct_MissingFields(t *testing.T) {
 	tests := []struct {
 		srcJson  string
-		expected []string
+		expected []missing
 	}{
 		{
 			srcJson:  `{}`,
-			expected: []string{"Foo", "Bar", "Baz"},
+			expected: []missing{{Field: "Foo"}, {Field: "Bar"}, {Field: "Baz"}},
 		},
 		{
 			srcJson:  `{"Foo":""}`,
-			expected: []string{"Bar", "Baz"},
+			expected: []missing{{Field: "Bar"}, {Field: "Baz"}},
 		},
 		{
 			srcJson:  `{"Foo":"","Bar":0}`,
-			expected: []string{"Baz"},
+			expected: []missing{{Field: "Baz"}},
 		},
 		{
 			srcJson:  `{"Foo":"","Bar":0,"Baz":3.14}`,
-			expected: []string{},
+			expected: []missing{},
 		},
 	}
 
@@ -462,7 +474,7 @@ func TestCompareMapToStruct_MissingFields(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
-		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MissingFields), test.srcJson)
 	}
 }
 
@@ -471,27 +483,27 @@ func TestCompareMapToStruct_MissingFields(t *testing.T) {
 func TestCompareMapToStruct_MissingFieldsEmbedded(t *testing.T) {
 	tests := []struct {
 		srcJson  string
-		expected []string
+		expected []missing
 	}{
 		{
 			srcJson:  `{}`,
-			expected: []string{"Foo", "Bar", "Baz", "Butt"},
+			expected: []missing{{Field: "Foo"}, {Field: "Bar"}, {Field: "Baz"}, {Field: "Butt"}},
 		},
 		{
 			srcJson:  `{"Foo":""}`,
-			expected: []string{"Bar", "Baz", "Butt"},
+			expected: []missing{{Field: "Bar"}, {Field: "Baz"}, {Field: "Butt"}},
 		},
 		{
 			srcJson:  `{"Foo":"","Bar":0}`,
-			expected: []string{"Baz", "Butt"},
+			expected: []missing{{Field: "Baz"}, {Field: "Butt"}},
 		},
 		{
 			srcJson:  `{"Foo":"","Bar":0,"Baz":3.14}`,
-			expected: []string{"Butt"},
+			expected: []missing{{Field: "Butt"}},
 		},
 		{
 			srcJson:  `{"Foo":"","Bar":0,"Baz":3.14,"Butt":false}`,
-			expected: []string{},
+			expected: []missing{},
 		},
 	}
 
@@ -501,7 +513,7 @@ func TestCompareMapToStruct_MissingFieldsEmbedded(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructEmbedded{}, src, nil)
-		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MissingFields), test.srcJson)
 	}
 }
 
@@ -510,23 +522,23 @@ func TestCompareMapToStruct_MissingFieldsEmbedded(t *testing.T) {
 func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 	tests := []struct {
 		srcJson  string
-		expected []string
+		expected []missing
 	}{
 		{
 			srcJson:  `{}`,
-			expected: []string{"a", "-", "WithOptions"},
+			expected: []missing{{Field: "a"}, {Field: "WithOptions"}, {Field: "-"}},
 		},
 		{
 			srcJson:  `{"a":""}`,
-			expected: []string{"-", "WithOptions"},
+			expected: []missing{{Field: "WithOptions"}, {Field: "-"}},
 		},
 		{
 			srcJson:  `{"-":""}`,
-			expected: []string{"a", "WithOptions"},
+			expected: []missing{{Field: "a"}, {Field: "WithOptions"}},
 		},
 		{
 			srcJson:  `{"WithOptions":""}`,
-			expected: []string{"a", "-"},
+			expected: []missing{{Field: "a"}, {Field: "-"}},
 		},
 	}
 
@@ -536,7 +548,7 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 		json.Unmarshal([]byte(test.srcJson), &src)
 
 		r, _ := schema.CompareMapToStruct(&TestStructTags{}, src, nil)
-		require.ElementsMatch(t, test.expected, r.MissingFields, test.srcJson)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MissingFields), test.srcJson)
 	}
 }
 
@@ -599,5 +611,106 @@ func TestCompareResults_ErrorsReturnsNil(t *testing.T) {
 		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
 
 		require.Nil(t, r.Errors())
+	}
+}
+
+func TestCompareMapToStruct_MismatchedFieldsNested(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []mismatch
+	}{
+		{
+			srcJson:  `{}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson:  `{"User":{"Foo":"foo", "Bar":12, "Baz":12}, "Cat":{"A":{"Baz":"baz"}, "B":true, "C":"c"}}`,
+			expected: []mismatch{},
+		},
+		{
+			srcJson: `{"User": 3, "Cat":{"A":{"Baz":"baz"}, "B":true, "C":"c"}}`,
+			expected: []mismatch{
+				{
+					Field:    "User",
+					Expected: "TestStruct",
+					Actual:   "float64",
+				},
+			},
+		},
+		{
+			srcJson: `{"User": {"Foo":"foo", "Bar":true, "Baz":12}, "Cat":{"A":{"Baz":"baz"}, "B":true, "C":"c"}}`,
+			expected: []mismatch{
+				{
+					Field:    "Bar",
+					Expected: "int",
+					Actual:   "bool",
+					Path:     []string{"User"},
+				},
+			},
+		},
+		{
+			srcJson: `{"User": {"Foo":"foo", "Bar":13, "Baz":12}, "Cat":{"A":{"Baz":true}, "B":true, "C":"c"}}`,
+			expected: []mismatch{
+				{
+					Field:    "Baz",
+					Expected: "string",
+					Actual:   "bool",
+					Path:     []string{"Cat", "A"},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(&TestStructNested{}, src, nil)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MismatchedFields), test.srcJson)
+	}
+}
+
+// Tests that CompareMapToStruct identifies and returns a list of fields that are in
+// dst but not src, and correctly works with nested structs.
+func TestCompareMapToStruct_MissingFieldsNested(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		expected []missing
+	}{
+		{
+			srcJson: `{}`,
+			expected: []missing{
+				{Field: "User"}, {Field: "Cat"},
+			},
+		},
+		{
+			srcJson: `{"User":{}, "Cat":{}}`,
+			expected: []missing{
+				{Field: "Foo", Path: []string{"User"}}, {Field: "Bar", Path: []string{"User"}}, {Field: "Baz", Path: []string{"User"}},
+				{Field: "A", Path: []string{"Cat"}}, {Field: "B", Path: []string{"Cat"}}, {Field: "C", Path: []string{"Cat"}},
+			},
+		},
+		{
+			srcJson: `{"User":{"Foo":"foo", "Baz":12}, "Cat":{"A":{}, "B":true, "C":"c"}}`,
+			expected: []missing{
+				{Field: "Bar", Path: []string{"User"}},
+				{Field: "Baz", Path: []string{"Cat", "A"}},
+			},
+		},
+		{
+			srcJson:  `{"User":{"Foo":"foo", "Bar":12, "Baz":12}, "Cat":{"A":{"Baz":"baz"}, "B":true, "C":"c"}}`,
+			expected: []missing{},
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(&TestStructNested{}, src, nil)
+		require.JSONEq(t, toJson(test.expected), toJson(r.MissingFields), test.srcJson)
+		require.Empty(t, r.MismatchedFields)
 	}
 }

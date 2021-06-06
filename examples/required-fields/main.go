@@ -49,7 +49,7 @@ func main() {
 		m := make(map[string]string)
 
 		for _, f := range r.MissingFields {
-			m[f] = "this field is required"
+			m[f.String()] = "this field is required"
 		}
 
 		resp.OK = false
