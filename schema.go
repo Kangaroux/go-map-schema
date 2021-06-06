@@ -277,14 +277,12 @@ func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, resu
 			}
 
 			checkNestedFields(nestedType, fieldName, nested, opts, results)
-
-			continue
 		}
 	}
 }
 
 func checkNestedFields(t reflect.Type, fieldName string, src map[string]interface{}, opts *CompareOpts, results *CompareResults) {
-	// Remeber count of fields to check if new errors occured.
+	// Remember count of fields to check if new errors occured.
 	mismatchCount := len(results.MismatchedFields)
 	missingCount := len(results.MissingFields)
 
