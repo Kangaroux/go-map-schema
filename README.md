@@ -41,20 +41,20 @@ For more examples, check out the [examples/](examples/) directory.
 
 ## Usage
 
-Suppose we have a `Person` model
+Suppose we have a `Person` model that contains a nested `Address`
 
 ```go
+type Address struct {
+    Country     string `json:"country"`
+    City        string `json:"city"`
+    AddressLine string `json:"address_line"`
+}
+
 type Person struct {
     FirstName string  `json:"first_name"`
     LastName  string  `json:"last_name"`
     Age       int     `json:"age"`
     Address   Address `json:"address"`
-}
-
-type Address struct {
-    Country     string `json:"country"`
-    City        string `json:"city"`
-    AddressLine string `json:"address_line"`
 }
 ```
 
@@ -65,8 +65,8 @@ and a client comes along and makes a `POST` request with this JSON.
     "first_name": "Jessie",
     "age": "26",
     "address": {
-      "country": "Example country",
-      "city": "Example city"
+      "country": "US",
+      "city": null
     }
 }
 ```
@@ -92,63 +92,7 @@ type CompareResults struct {
 
 With this, we can quickly see which fields have mismatched types, as well as any fields that are in the `Person` struct but not the JSON.
 
-### Full Code
-
-```go
-package main
-
-import (
-    "encoding/json"
-    "fmt"
-
-    schema "github.com/Kangaroux/go-map-schema"
-)
-
-// Person is the model we are using.
-type Person struct {
-  FirstName string  `json:"first_name"`
-  LastName  string  `json:"last_name"`
-  Age       int     `json:"age"`
-  Address   Address `json:"address"`
-}
-
-// Address is the model we are using as nested for Person.
-type Address struct {
-  Country     string `json:"country"`
-  City        string `json:"city"`
-  AddressLine string `json:"address_line"`
-}
-
-func main() {
-    // The JSON payload (src).
-    payload := `{
-		"first_name": "Jessie",
-		"age": "26",
-		"address": {
-			"country": "Example country",
-			"city": "Example city"
-		}
-	}`
-    m := make(map[string]interface{})
-    json.Unmarshal([]byte(payload), &m)
-
-    // The struct we want to load the payload into (dst).
-    p := Person{}
-    results, _ := schema.CompareMapToStruct(&p, m, nil)
-
-    fmt.Println("missing fields:   ", results.MissingFields)
-    fmt.Println("mismatched fields:", results.MismatchedFields)
-}
-```
-
-### Output
-
-```
-missing fields:    [last_name address.address_line]
-mismatched fields: [expected "age" to be a int but it's a string]
-```
-
-`FieldMismatch.String()` returns a simple user friendly message describing what the issue is. You can of course use your own custom message instead.
+Check out [examples/type-errors](examples/type-errors) for the complete example.
 
 # Universal Type Names
 
