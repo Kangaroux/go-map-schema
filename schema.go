@@ -26,7 +26,20 @@ func (cr *CompareResults) Errors() error {
 	m := make(map[string]interface{})
 
 	for _, f := range cr.MismatchedFields {
-		m[f.Field] = f.Message()
+		cursor := m
+
+		// Create additional maps for nested fields so they are reported using
+		// the same schema. For example, `address.city` would be reported as
+		// {"address": {"city": "..."}}
+		for _, path := range f.Path {
+			if _, ok := cursor[path]; !ok {
+				cursor[path] = make(map[string]interface{})
+			}
+
+			cursor = cursor[path].(map[string]interface{})
+		}
+
+		cursor[f.Field] = f.Message()
 	}
 
 	return MismatchError(m)

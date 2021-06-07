@@ -33,8 +33,8 @@ func main() {
 		"first_name": "Jessie",
 		"age": "26",
 		"address": {
-			"country": "Example country",
-			"city": "Example city"
+			"country": true,
+			"city": null
 		}
 	}`
 	m := make(map[string]interface{})
