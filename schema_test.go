@@ -552,68 +552,8 @@ func TestCompareMapToStruct_MissingFieldsTags(t *testing.T) {
 	}
 }
 
-// Tests that Errors returns the expected error map.
-func TestCompareResults_Errors(t *testing.T) {
-	tests := []struct {
-		srcJson  string
-		expected error
-	}{
-		{
-			srcJson: `{"Foo":null}`,
-			expected: schema.MismatchError(map[string]interface{}{
-				"Foo": `expected a string but it's null`,
-			}),
-		},
-		{
-			srcJson: `{"Foo":1.23,"Bar":true}`,
-			expected: schema.MismatchError(map[string]interface{}{
-				"Foo": `expected a string but it's a float64`,
-				"Bar": `expected an int but it's a bool`,
-			}),
-		},
-	}
-
-	for _, test := range tests {
-		// Unmarshal the json into a map.
-		src := make(map[string]interface{})
-		json.Unmarshal([]byte(test.srcJson), &src)
-
-		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
-
-		require.Equal(t, test.expected, r.Errors(), test.srcJson)
-
-		// Test marshaling the error to JSON.
-		require.JSONEq(t, toJson(test.expected), toJson(r.Errors()), test.srcJson)
-	}
-}
-
-// Tests that Errors returns nil when there are no type mismatches.
-func TestCompareResults_ErrorsReturnsNil(t *testing.T) {
-	tests := []struct {
-		srcJson string
-	}{
-		{
-			srcJson: `{}`,
-		},
-		{
-			srcJson: `{"Foo":"hi"}`,
-		},
-		{
-			srcJson: `{"Foo":"hi","Bar":1,"Baz":3.14}`,
-		},
-	}
-
-	for _, test := range tests {
-		// Unmarshal the json into a map.
-		src := make(map[string]interface{})
-		json.Unmarshal([]byte(test.srcJson), &src)
-
-		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
-
-		require.Nil(t, r.Errors())
-	}
-}
-
+// Tests that CompareMapToStruct identifies and returns a list of fields that are in
+// dst but not src, and correctly works with nested structs.
 func TestCompareMapToStruct_MismatchedFieldsNested(t *testing.T) {
 	tests := []struct {
 		srcJson  string
@@ -712,5 +652,90 @@ func TestCompareMapToStruct_MissingFieldsNested(t *testing.T) {
 		r, _ := schema.CompareMapToStruct(&TestStructNested{}, src, nil)
 		require.JSONEq(t, toJson(test.expected), toJson(r.MissingFields), test.srcJson)
 		require.Empty(t, r.MismatchedFields)
+	}
+}
+
+// Tests that Errors returns the expected error map.
+func TestCompareResults_Errors(t *testing.T) {
+	tests := []struct {
+		srcJson  string
+		dst      interface{}
+		expected error
+	}{
+		{
+			srcJson: `{"Foo":null}`,
+			dst:     &TestStruct{},
+			expected: schema.MismatchError(map[string]interface{}{
+				"Foo": `expected a string but it's null`,
+			}),
+		},
+		{
+			srcJson: `{"Foo":1.23,"Bar":true}`,
+			dst:     &TestStruct{},
+			expected: schema.MismatchError(map[string]interface{}{
+				"Foo": `expected a string but it's a float64`,
+				"Bar": `expected an int but it's a bool`,
+			}),
+		},
+		{
+			srcJson: `{"Foo":1.23,"Bar":true,"Butt":"hi"}`,
+			dst:     &TestStructEmbedded{},
+			expected: schema.MismatchError(map[string]interface{}{
+				"Foo":  `expected a string but it's a float64`,
+				"Bar":  `expected an int but it's a bool`,
+				"Butt": `expected a bool but it's a string`,
+			}),
+		},
+		{
+			srcJson: `{"User": {"Foo":"foo", "Bar":13, "Baz":12}, "Cat":{"A":{"Baz":true}, "B":true, "C":"c"}}`,
+			dst:     &TestStructNested{},
+			expected: schema.MismatchError(map[string]interface{}{
+				"Cat": map[string]interface{}{
+					"A": map[string]interface{}{
+						"Baz": `expected a string but it's a bool`,
+					},
+				},
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(test.dst, src, nil)
+
+		require.Equal(t, test.expected, r.Errors(), test.srcJson)
+
+		// Test marshaling the error to JSON.
+		require.JSONEq(t, toJson(test.expected), toJson(r.Errors()), test.srcJson)
+	}
+}
+
+// Tests that Errors returns nil when there are no type mismatches.
+func TestCompareResults_ErrorsReturnsNil(t *testing.T) {
+	tests := []struct {
+		srcJson string
+	}{
+		{
+			srcJson: `{}`,
+		},
+		{
+			srcJson: `{"Foo":"hi"}`,
+		},
+		{
+			srcJson: `{"Foo":"hi","Bar":1,"Baz":3.14}`,
+		},
+	}
+
+	for _, test := range tests {
+		// Unmarshal the json into a map.
+		src := make(map[string]interface{})
+		json.Unmarshal([]byte(test.srcJson), &src)
+
+		r, _ := schema.CompareMapToStruct(&TestStruct{}, src, nil)
+
+		require.Nil(t, r.Errors())
 	}
 }
