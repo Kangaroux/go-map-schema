@@ -31,7 +31,7 @@ As a result, you end up with an API that has
 
 For something like an API, it's worth asking who is going to be the client that is using the API. Is this an API for your single page app, or are you providing a service and it will be used by other developers?
 
-If the API is "internal" and only used within the context of your site, I don't think it's necessary. But if someone is trying to use your API, I think it's worth having. API documentation is rarely perfect, and giving the client a readable error can help them debug when a request throws a 400 Bad Request.
+If the API is "internal" and only used within the context of your site, it's probably not necessary. But if someone is trying to use your API, it can be very useful. API documentation is rarely perfect, and giving the client a readable error can help them debug when they get a `400`.
 
 # Examples
 
@@ -78,7 +78,7 @@ src := make(map[string]interface{})
 json.Unmarshal(payload, &src)
 
 dst := Person{}
-results, err := schema.CompareMapToStruct(&dst, src)
+results, err := schema.CompareMapToStruct(&dst, src, nil)
 ```
 
 After comparing we now have a `CompareResults` instance stored in `results`.
