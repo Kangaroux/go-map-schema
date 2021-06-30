@@ -79,7 +79,8 @@ func FieldNameWithPath(f string, path []string) string {
 	b := strings.Builder{}
 
 	for _, p := range path {
-		b.WriteString(p + ".")
+		b.WriteString(p)
+		b.WriteRune('.')
 	}
 
 	b.WriteString(f)
