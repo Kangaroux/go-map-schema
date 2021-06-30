@@ -152,7 +152,7 @@ func CompareMapToStruct(dst interface{}, src map[string]interface{}, opts *Compa
 			TypeNameFunc:    DetailedTypeName,
 		}
 	} else {
-		// Create a copy of the options since we might need to modify it.
+		// Create a copy so we can set defaults without modifying the call arg.
 		opts = &CompareOpts{
 			ConvertibleFunc: opts.ConvertibleFunc,
 			TypeNameFunc:    opts.TypeNameFunc,
@@ -249,9 +249,6 @@ func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, resu
 			continue
 		}
 
-		// If the field is a nested struct also check its fields.
-		shouldCheckNested := isStructType(f.Type)
-
 		if srcField, ok := src[fieldName]; ok {
 			srcValue := reflect.ValueOf(srcField)
 
@@ -271,20 +268,21 @@ func compare(t reflect.Type, src map[string]interface{}, opts *CompareOpts, resu
 				}
 
 				results.MismatchedFields = append(results.MismatchedFields, mismatch)
-				// There is no point to check nested fields if their parent is mismatched.
-				shouldCheckNested = false
+
+				continue
 			}
 		} else {
 			missing := FieldMissing{Field: fieldName}
-
 			results.MissingFields = append(results.MissingFields, missing)
-			// There is no point to check nested fields if their parent is missing.
-			shouldCheckNested = false
+
+			continue
 		}
 
-		if shouldCheckNested {
+		// If the field is a nested struct also check its fields.
+		if isStructType(f.Type) {
 			nested := src[fieldName].(map[string]interface{})
 			nestedType := f.Type
+
 			if f.Type.Kind() == reflect.Ptr {
 				nestedType = nestedType.Elem()
 			}
@@ -323,7 +321,6 @@ func isFloatType(t reflect.Type) (yes bool) {
 	case reflect.Float32, reflect.Float64:
 		yes = true
 	}
-
 	return
 }
 
@@ -336,7 +333,6 @@ func isIntegerType(t reflect.Type) (yes bool, unsigned bool) {
 		yes = true
 		unsigned = true
 	}
-
 	return
 }
 
@@ -357,9 +353,7 @@ func parseField(f reflect.StructField) (name string, ignore bool) {
 
 	if tag == "" {
 		return f.Name, false
-	}
-
-	if tag == "-" {
+	} else if tag == "-" {
 		return "", true
 	}
 

@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -9,7 +8,7 @@ import (
 // DetailedTypeName takes a type and returns it verbatim.
 func DetailedTypeName(t reflect.Type) string {
 	if t.Kind() == reflect.Ptr {
-		return fmt.Sprintf("*%s", t.Elem().Name())
+		return "*" + t.Elem().Name()
 	}
 
 	return t.Name()
@@ -78,9 +77,11 @@ func TypeNameWithArticle(t string) string {
 // FieldNameWithPath returns the field name including the path in the following format: parent1.parent2.name
 func FieldNameWithPath(f string, path []string) string {
 	b := strings.Builder{}
+
 	for _, p := range path {
 		b.WriteString(p + ".")
 	}
+
 	b.WriteString(f)
 
 	return b.String()
